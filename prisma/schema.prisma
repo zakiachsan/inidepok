@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  username     String    @unique
+  password     String
+  displayName  String    @map("display_name")
+  avatar       String?
+  role         UserRole  @default(AUTHOR)
+  bio          String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  posts        Post[]
+  comments     Comment[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  AUTHOR
+}
+
+model Post {
+  id            Int         @id @default(autoincrement())
+  title         String
+  slug          String      @unique
+  content       String
+  excerpt       String?
+  featuredImage String?     @map("featured_image")
+  status        PostStatus  @default(DRAFT)
+  viewCount     Int         @default(0) @map("view_count")
+  publishedAt   DateTime?   @map("published_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  authorId      Int         @map("author_id")
+  author        User        @relation(fields: [authorId], references: [id])
+
+  categories    PostCategory[]
+  tags          PostTag[]
+  comments      Comment[]
+  meta          PostMeta[]
+
+  @@index([slug])
+  @@index([status, publishedAt])
+  @@map("posts")
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  TRASH
+}
+
+model Category {
+  id          Int     @id @default(autoincrement())
+  name        String
+  slug        String  @unique
+  description String?
+  parentId    Int?    @map("parent_id")
+  order       Int     @default(0)
+
+  parent      Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryToCategory")
+  posts       PostCategory[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id    Int     @id @default(autoincrement())
+  name  String
+  slug  String  @unique
+
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model PostCategory {
+  postId     Int      @map("post_id")
+  categoryId Int      @map("category_id")
+
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
+  @@map("post_categories")
+}
+
+model PostTag {
+  postId Int @map("post_id")
+  tagId  Int @map("tag_id")
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+model PostMeta {
+  id     Int    @id @default(autoincrement())
+  postId Int    @map("post_id")
+  key    String
+  value  String
+
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, key])
+  @@map("post_meta")
+}
+
+model Comment {
+  id          Int           @id @default(autoincrement())
+  content     String
+  authorName  String?       @map("author_name")
+  authorEmail String?       @map("author_email")
+  authorUrl   String?       @map("author_url")
+  status      CommentStatus @default(PENDING)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  postId      Int           @map("post_id")
+  post        Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId      Int?          @map("user_id")
+  user        User?         @relation(fields: [userId], references: [id])
+
+  parentId    Int?          @map("parent_id")
+  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     Comment[]     @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  SPAM
+  TRASH
+}
+
+model Media {
+  id          Int      @id @default(autoincrement())
+  filename    String
+  originalName String  @map("original_name")
+  mimeType    String   @map("mime_type")
+  size        Int
+  url         String
+  alt         String?
+  caption     String?
+  width       Int?
+  height      Int?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("media")
+}
+
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+
+  @@map("settings")
+}
+
+model Menu {
+  id       Int        @id @default(autoincrement())
+  name     String
+  location String     @unique
+  items    MenuItem[]
+
+  @@map("menus")
+}
+
+model MenuItem {
+  id       Int    @id @default(autoincrement())
+  label    String
+  url      String
+  target   String @default("_self")
+  order    Int    @default(0)
+
+  menuId   Int    @map("menu_id")
+  menu     Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  parentId Int?   @map("parent_id")
+  parent   MenuItem?  @relation("MenuItemToMenuItem", fields: [parentId], references: [id])
+  children MenuItem[] @relation("MenuItemToMenuItem")
+
+  @@map("menu_items")
+}

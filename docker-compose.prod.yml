@@ -1,0 +1,22 @@
+# Production docker-compose for inidepok
+# This connects to the existing kilasindonesia PostgreSQL container
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inidepok-app
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://kilasindonesia:kilas2024secure@kilasindonesia-db:5432/inidepok
+      - NEXT_PUBLIC_SITE_URL=https://inidepok.com
+      - NEXT_PUBLIC_SITE_NAME=IniDepok
+      - NODE_ENV=production
+    networks:
+      - kilasindonesia_default
+    ports:
+      - "3001:3000"
+
+networks:
+  kilasindonesia_default:
+    external: true

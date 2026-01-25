@@ -1,0 +1,42 @@
+{
+  "name": "inidepok",
+  "version": "1.0.0",
+  "description": "Media online inidepok.com",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "seed": "ts-node scripts/seed.ts",
+    "migrate:wp": "ts-node scripts/migrate-wp.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.3.0",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
+    "next": "^16.1.4",
+    "prisma": "^7.3.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^25.0.10",
+    "@types/react": "^19.2.9",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "^16.1.4",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
