@@ -3,6 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const RichTextEditor = dynamic(
+  () => import('@/components/admin/RichTextEditor'),
+  { ssr: false, loading: () => <div className="h-[400px] bg-gray-100 animate-pulse rounded-lg" /> }
+)
 
 interface Category {
   id: string
@@ -46,10 +52,16 @@ function slugify(text: string): string {
     .trim()
 }
 
+function extractFirstSentence(html: string): string {
+  const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  const match = text.match(/^[^.!?]*[.!?]/)
+  return match ? match[0].trim() : text.slice(0, 160)
+}
+
 export default function PostEditor({
   post,
   categories,
-  tags,
+  tags: initialTags,
   isEdit = false,
 }: PostEditorProps) {
   const router = useRouter()
@@ -70,18 +82,44 @@ export default function PostEditor({
   })
 
   const [autoSlug, setAutoSlug] = useState(!isEdit)
+  const [autoMetaTitle, setAutoMetaTitle] = useState(!isEdit)
+  const [autoMetaDesc, setAutoMetaDesc] = useState(!isEdit)
+
+  // Tags state
+  const [availableTags, setAvailableTags] = useState<Tag[]>(initialTags)
+  const [newTagName, setNewTagName] = useState('')
+  const [creatingTag, setCreatingTag] = useState(false)
 
   function handleTitleChange(title: string) {
     setFormData((prev) => ({
       ...prev,
       title,
       slug: autoSlug ? slugify(title) : prev.slug,
+      metaTitle: autoMetaTitle ? title : prev.metaTitle,
     }))
   }
 
   function handleSlugChange(slug: string) {
     setAutoSlug(false)
     setFormData((prev) => ({ ...prev, slug: slugify(slug) }))
+  }
+
+  function handleContentChange(content: string) {
+    setFormData((prev) => ({
+      ...prev,
+      content,
+      metaDescription: autoMetaDesc ? extractFirstSentence(content) : prev.metaDescription,
+    }))
+  }
+
+  function handleMetaTitleChange(metaTitle: string) {
+    setAutoMetaTitle(false)
+    setFormData((prev) => ({ ...prev, metaTitle }))
+  }
+
+  function handleMetaDescriptionChange(metaDescription: string) {
+    setAutoMetaDesc(false)
+    setFormData((prev) => ({ ...prev, metaDescription }))
   }
 
   function handleCategoryToggle(categoryId: string) {
@@ -100,6 +138,37 @@ export default function PostEditor({
         ? prev.tagIds.filter((id) => id !== tagId)
         : [...prev.tagIds, tagId],
     }))
+  }
+
+  async function handleCreateTag() {
+    if (!newTagName.trim() || creatingTag) return
+
+    setCreatingTag(true)
+    try {
+      const res = await fetch('/api/admin/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newTagName.trim() }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal membuat tag')
+      }
+
+      // Add new tag to available tags and select it
+      setAvailableTags((prev) => [...prev, data.tag])
+      setFormData((prev) => ({
+        ...prev,
+        tagIds: [...prev.tagIds, data.tag.id],
+      }))
+      setNewTagName('')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Gagal membuat tag')
+    } finally {
+      setCreatingTag(false)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -156,7 +225,7 @@ export default function PostEditor({
                   value={formData.title}
                   onChange={(e) => handleTitleChange(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                   placeholder="Masukkan judul artikel"
                 />
               </div>
@@ -173,29 +242,23 @@ export default function PostEditor({
                     value={formData.slug}
                     onChange={(e) => handleSlugChange(e.target.value)}
                     required
-                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 text-xs"
+                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-xs"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Content */}
+          {/* Content - Rich Text Editor */}
           <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
-            <label htmlFor="content" className="block text-xs font-medium text-gray-700 mb-1.5">
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
               Konten Artikel
             </label>
-            <textarea
-              id="content"
-              value={formData.content}
-              onChange={(e) => setFormData((prev) => ({ ...prev, content: e.target.value }))}
-              rows={16}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-mono text-xs"
-              placeholder="Tulis konten artikel... (HTML didukung)"
+            <RichTextEditor
+              content={formData.content}
+              onChange={handleContentChange}
+              placeholder="Tulis konten artikel..."
             />
-            <p className="text-[10px] text-gray-500 mt-1.5">
-              Mendukung HTML. Gunakan tag seperti &lt;p&gt;, &lt;h2&gt;, &lt;ul&gt;, &lt;blockquote&gt;, dll.
-            </p>
           </div>
 
           {/* Excerpt */}
@@ -208,9 +271,82 @@ export default function PostEditor({
               value={formData.excerpt}
               onChange={(e) => setFormData((prev) => ({ ...prev, excerpt: e.target.value }))}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
               placeholder="Ringkasan singkat artikel (opsional)"
             />
+          </div>
+
+          {/* Tags - Moved to main content */}
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
+            <h3 className="font-medium text-gray-900 text-sm mb-3">Tag</h3>
+
+            {/* Create new tag */}
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleCreateTag())}
+                placeholder="Buat tag baru..."
+                className="flex-1 px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+              />
+              <button
+                type="button"
+                onClick={handleCreateTag}
+                disabled={creatingTag || !newTagName.trim()}
+                className="px-3 py-1.5 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                {creatingTag ? '...' : '+'}
+              </button>
+            </div>
+
+            {/* Selected tags */}
+            {formData.tagIds.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs text-gray-500 mb-1.5">Tag terpilih:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {formData.tagIds.map((tagId) => {
+                    const tag = availableTags.find((t) => t.id === tagId)
+                    if (!tag) return null
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => handleTagToggle(tag.id)}
+                        className="px-2 py-0.5 text-xs rounded-full bg-primary-600 text-white hover:bg-primary-700 transition-colors flex items-center gap-1"
+                      >
+                        #{tag.name}
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Available tags */}
+            <div>
+              <p className="text-xs text-gray-500 mb-1.5">Tag tersedia:</p>
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                {availableTags
+                  .filter((tag) => !formData.tagIds.includes(tag.id))
+                  .map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => handleTagToggle(tag.id)}
+                      className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                    >
+                      #{tag.name}
+                    </button>
+                  ))}
+                {availableTags.filter((tag) => !formData.tagIds.includes(tag.id)).length === 0 && (
+                  <p className="text-xs text-gray-400">Semua tag sudah dipilih</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* SEO */}
@@ -220,26 +356,28 @@ export default function PostEditor({
               <div>
                 <label htmlFor="metaTitle" className="block text-xs font-medium text-gray-700 mb-1">
                   Meta Title
+                  {autoMetaTitle && <span className="text-gray-400 ml-1">(auto)</span>}
                 </label>
                 <input
                   type="text"
                   id="metaTitle"
                   value={formData.metaTitle}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, metaTitle: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                  onChange={(e) => handleMetaTitleChange(e.target.value)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                   placeholder="Judul untuk mesin pencari (opsional)"
                 />
               </div>
               <div>
                 <label htmlFor="metaDescription" className="block text-xs font-medium text-gray-700 mb-1">
                   Meta Description
+                  {autoMetaDesc && <span className="text-gray-400 ml-1">(auto)</span>}
                 </label>
                 <textarea
                   id="metaDescription"
                   value={formData.metaDescription}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, metaDescription: e.target.value }))}
+                  onChange={(e) => handleMetaDescriptionChange(e.target.value)}
                   rows={2}
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                   placeholder="Deskripsi untuk mesin pencari (opsional)"
                 />
               </div>
@@ -261,7 +399,7 @@ export default function PostEditor({
                   id="status"
                   value={formData.status}
                   onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as PostData['status'] }))}
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                 >
                   <option value="DRAFT">Draft</option>
                   <option value="PUBLISHED">Dipublikasi</option>
@@ -273,7 +411,7 @@ export default function PostEditor({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors disabled:bg-red-400"
+                  className="flex-1 px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors disabled:bg-primary-400"
                 >
                   {loading ? 'Menyimpan...' : isEdit ? 'Update' : 'Simpan'}
                 </button>
@@ -295,7 +433,7 @@ export default function PostEditor({
                 type="text"
                 value={formData.featuredImage}
                 onChange={(e) => setFormData((prev) => ({ ...prev, featuredImage: e.target.value }))}
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 text-xs"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-xs"
                 placeholder="URL gambar"
               />
               {formData.featuredImage && (
@@ -323,37 +461,13 @@ export default function PostEditor({
                     type="checkbox"
                     checked={formData.categoryIds.includes(category.id)}
                     onChange={() => handleCategoryToggle(category.id)}
-                    className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                    className="w-3.5 h-3.5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                   />
                   <span className="text-xs text-gray-700">{category.name}</span>
                 </label>
               ))}
               {categories.length === 0 && (
                 <p className="text-xs text-gray-500">Belum ada kategori</p>
-              )}
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
-            <h3 className="font-medium text-gray-900 text-sm mb-3">Tag</h3>
-            <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
-              {tags.map((tag) => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => handleTagToggle(tag.id)}
-                  className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
-                    formData.tagIds.includes(tag.id)
-                      ? 'bg-red-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  #{tag.name}
-                </button>
-              ))}
-              {tags.length === 0 && (
-                <p className="text-xs text-gray-500">Belum ada tag</p>
               )}
             </div>
           </div>

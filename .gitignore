@@ -50,3 +50,6 @@ wp-backup/
 
 # Source repo (migration reference)
 kilasindonesia/
+
+# Uploaded files
+**/public/uploads/

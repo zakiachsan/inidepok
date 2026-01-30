@@ -33,6 +33,16 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['@heroicons/react'],
   },
+
+  // Rewrites for serving uploaded files
+  async rewrites() {
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: '/api/uploads/:path*',
+      },
+    ]
+  },
 };
 
 export default nextConfig;
