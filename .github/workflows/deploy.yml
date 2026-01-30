@@ -61,10 +61,11 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /opt/apps/inidepok
-            docker pull ghcr.io/${{ github.repository }}:latest
-            docker compose -f docker-compose.prod.yml up -d app
+            docker compose -f docker-compose.prod.yml pull app
+            docker compose -f docker-compose.prod.yml up -d app --force-recreate
             # Cleanup old images
             docker image prune -af --filter "until=24h"
             # Verify deployment
+            sleep 5
             docker ps | grep inidepok-app
             echo "Deployment completed successfully!"
