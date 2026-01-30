@@ -19,9 +19,9 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
   const [settings, setSettings] = useState<SiteSettings>({
-    siteName: 'Kilas Indonesia',
-    siteDescription: 'Portal Berita Terkini Indonesia',
-    siteUrl: 'https://kilasindonesia.com',
+    siteName: 'Ini Depok',
+    siteDescription: 'Portal Berita Terkini Depok',
+    siteUrl: 'https://inidepok.com',
     postsPerPage: 10,
     allowComments: true,
     moderateComments: true,

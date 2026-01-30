@@ -247,7 +247,7 @@ export async function generateMetadata({ params }: PageProps) {
   }
 
   const title = `${category.name} - Berita Terbaru`
-  const description = category.description || `Kumpulan berita terbaru tentang ${category.name} di Kilas Indonesia`
+  const description = category.description || `Kumpulan berita terbaru tentang ${category.name} di Ini Depok`
   const canonicalUrl = getCanonicalUrl(`/category/${slug}`)
 
   return {
@@ -257,18 +257,18 @@ export async function generateMetadata({ params }: PageProps) {
       canonical: canonicalUrl,
     },
     openGraph: {
-      title: `${category.name} | Kilas Indonesia`,
+      title: `${category.name} | Ini Depok`,
       description,
       type: 'website',
       url: canonicalUrl,
-      siteName: 'Kilas Indonesia',
+      siteName: 'Ini Depok',
       locale: 'id_ID',
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${category.name} | Kilas Indonesia`,
+      title: `${category.name} | Ini Depok`,
       description,
-      site: '@kilasindonesia',
+      site: '@inidepok',
     },
     robots: {
       index: true,

@@ -141,8 +141,8 @@ async function getTotalPostCount() {
 }
 
 export async function generateMetadata() {
-  const title = 'Semua Berita - Kilas Indonesia'
-  const description = 'Kumpulan berita terbaru dari berbagai kategori di Kilas Indonesia. Dapatkan informasi terkini seputar nasional, politik, ekonomi, olahraga, dan lainnya.'
+  const title = 'Semua Berita - Ini Depok'
+  const description = 'Kumpulan berita terbaru dari berbagai kategori di Ini Depok. Dapatkan informasi terkini seputar nasional, politik, ekonomi, olahraga, dan lainnya.'
   const canonicalUrl = getCanonicalUrl('/berita')
 
   return {
@@ -156,14 +156,14 @@ export async function generateMetadata() {
       description,
       type: 'website',
       url: canonicalUrl,
-      siteName: 'Kilas Indonesia',
+      siteName: 'Ini Depok',
       locale: 'id_ID',
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      site: '@kilasindonesia',
+      site: '@inidepok',
     },
     robots: {
       index: true,

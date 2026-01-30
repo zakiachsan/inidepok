@@ -166,7 +166,7 @@ export default function PostEditor({
                   Slug (URL)
                 </label>
                 <div className="flex items-center">
-                  <span className="text-gray-500 text-xs mr-2">kilasindonesia.com/</span>
+                  <span className="text-gray-500 text-xs mr-2">inidepok.com/</span>
                   <input
                     type="text"
                     id="slug"
