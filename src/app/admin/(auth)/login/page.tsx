@@ -64,7 +64,7 @@ function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
             className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-100"
-            placeholder="admin@kilasindonesia.com"
+            placeholder="admin@inidepok.com"
           />
         </div>
 
@@ -132,8 +132,8 @@ export default function AdminLoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link href="/" className="inline-block">
-            <h1 className="text-3xl font-bold text-red-600">
-              Kilas<span className="text-gray-800">Indonesia</span>
+            <h1 className="text-3xl font-bold text-primary">
+              Ini<span className="text-gray-800">Depok</span>
             </h1>
           </Link>
           <h2 className="mt-6 text-2xl font-bold text-gray-900">Admin Login</h2>
