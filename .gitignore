@@ -47,3 +47,6 @@ next-env.d.ts
 wp-backup/
 *.wpress
 *.sql
+
+# Source repo (migration reference)
+kilasindonesia/
