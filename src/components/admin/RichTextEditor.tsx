@@ -28,6 +28,7 @@ export default function RichTextEditor({
   const [imageUrl, setImageUrl] = useState('')
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: {

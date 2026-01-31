@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface FooterLink {
   title: string
@@ -33,11 +34,14 @@ export default function Footer({ links = defaultLinks }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="md:col-span-2">
-            <Link href="/" className="flex items-center gap-3 mb-6 group">
-              <div className="flex items-baseline">
-                <span className="text-3xl font-bold" style={{ color: '#0973e1' }}>Ini</span>
-                <span className="text-3xl font-bold" style={{ color: '#46b236' }}>Depok</span>
-              </div>
+            <Link href="/" className="flex items-center gap-3 mb-6">
+              <Image
+                src="https://res.cloudinary.com/dicwfbdgz/image/upload/v1769900335/WhatsApp_Image_2026-01-31_at_4.44.25_PM__1_-removebg-preview_tkvs3q.png"
+                alt="Ini Depok"
+                width={150}
+                height={40}
+                className="h-10 w-auto"
+              />
             </Link>
             <p className="text-sm text-gray-500 mb-6 max-w-md leading-relaxed">
               Ini Depok adalah portal berita yang menyajikan informasi terkini,

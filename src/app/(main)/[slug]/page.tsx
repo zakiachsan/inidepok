@@ -199,7 +199,10 @@ export async function generateMetadata({ params }: PageProps) {
   const title = post.metaTitle || post.title
   const description = post.metaDescription || post.excerpt || post.content.replace(/<[^>]*>/g, '').substring(0, 160)
   const canonicalUrl = getCanonicalUrl(`/${slug}`)
-  const imageUrl = post.featuredImage || '/og-image.jpg'
+  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://inidepok.com'
+  const imageUrl = post.featuredImage
+    ? (post.featuredImage.startsWith('http') ? post.featuredImage : `${BASE_URL}${post.featuredImage}`)
+    : `${BASE_URL}/og-image.jpg`
 
   return {
     title,

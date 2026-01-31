@@ -1,4 +1,5 @@
 import { db, categories, postCategories, eq, asc, count } from '@/db'
+import { auth } from '@/lib/auth'
 import CategoriesManager from './components/CategoriesManager'
 
 async function getCategories() {
@@ -26,6 +27,8 @@ async function getCategories() {
 }
 
 export default async function CategoriesPage() {
+  const session = await auth()
+  const isAdmin = session?.user?.role === 'ADMIN'
   const categoriesList = await getCategories()
 
   return (
@@ -33,11 +36,11 @@ export default async function CategoriesPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Kategori</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Kelola kategori artikel
+          {isAdmin ? 'Kelola kategori artikel' : 'Daftar kategori artikel'}
         </p>
       </div>
 
-      <CategoriesManager initialCategories={categoriesList} />
+      <CategoriesManager initialCategories={categoriesList} isAdmin={isAdmin} />
     </div>
   )
 }

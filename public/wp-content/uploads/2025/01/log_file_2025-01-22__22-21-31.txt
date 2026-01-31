@@ -1,0 +1,40 @@
+
+---Downloaded files---
+The import files for: Demo Import were successfully downloaded!
+Initial max execution time = 300
+Files info:
+Site URL = https://preview.bostheme.com/wpberita
+Data file = /home/idthemec/public_html/preview/wp-content/themes/wpberita/inc/demo-data/demo-content.xml
+Widget file = /home/idthemec/public_html/preview/wp-content/themes/wpberita/inc/demo-data/widgets.json
+Customizer file = /home/idthemec/public_html/preview/wp-content/themes/wpberita/inc/demo-data/customizer.dat
+Redux files:
+not defined!
+
+---ocdi/before_content_import---
+
+
+---Importing widgets---
+Sidebar : 
+
+Custom HTML - No Title - Imported
+Recent Posts (WpBerita) - Berita Terbaru - Imported
+Recent Posts (WpBerita) - Berita Olahraga - Imported
+Popular Posts (WpBerita) - Popular Post - Imported
+Recent Posts (WpBerita) - Berita Kriminal - Imported
+Recent Posts (WpBerita) - Otomotif - Imported
+
+Module 1 : 
+
+Module Posts (WpBerita) - Olahraga Terbaru - Imported
+
+Module 2 : 
+
+Module Posts (WpBerita) - Berita Terbaru - Imported
+
+
+
+---Importing customizer settings---
+Customizer settings import finished!
+
+---ocdi/after_import---
+

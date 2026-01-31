@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState } from 'react'
 import MobileNav from './MobileNav'
 
@@ -27,12 +28,16 @@ export default function Header() {
       <header className="bg-white border-b border-gray-200 relative z-40">
         <div className="container py-3">
           <div className="flex items-center justify-between">
-            {/* Logo - Text-based for now, can be replaced with image later */}
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="flex items-baseline">
-                <span className="text-3xl font-bold" style={{ color: '#0973e1' }}>Ini</span>
-                <span className="text-3xl font-bold" style={{ color: '#46b236' }}>Depok</span>
-              </div>
+            {/* Logo */}
+            <Link href="/" className="flex items-center">
+              <Image
+                src="https://res.cloudinary.com/dicwfbdgz/image/upload/v1769900335/WhatsApp_Image_2026-01-31_at_4.44.25_PM__1_-removebg-preview_tkvs3q.png"
+                alt="Ini Depok"
+                width={150}
+                height={40}
+                priority
+                className="h-10 w-auto"
+              />
             </Link>
 
             {/* Right Side - Date & Social */}

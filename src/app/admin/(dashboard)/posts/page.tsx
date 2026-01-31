@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { db, posts, users, categories, postCategories, eq, desc, count, ilike, or, and } from '@/db'
+import { auth } from '@/lib/auth'
 import PostsTable from './components/PostsTable'
 
 interface PageProps {
@@ -62,6 +63,7 @@ async function getPosts(status?: string, page = 1, search?: string) {
         return {
           ...post,
           author: author || { name: 'Unknown' },
+          authorId: post.authorId,
           categories: postCats,
         }
       })
@@ -86,12 +88,18 @@ async function getPosts(status?: string, page = 1, search?: string) {
 }
 
 export default async function PostsPage({ searchParams }: PageProps) {
+  const session = await auth()
   const params = await searchParams
   const status = params.status
   const page = parseInt(params.page || '1')
   const search = params.search
 
   const { posts: postsList, total, totalPages, currentPage } = await getPosts(status, page, search)
+
+  const currentUser = {
+    id: session?.user?.id || '',
+    role: session?.user?.role || 'AUTHOR',
+  }
 
   const statusTabs = [
     { name: 'Semua', value: '', count: null },
@@ -178,7 +186,7 @@ export default async function PostsPage({ searchParams }: PageProps) {
         </div>
 
         {/* Posts Table */}
-        <PostsTable posts={postsList} />
+        <PostsTable posts={postsList} currentUser={currentUser} />
 
         {/* Pagination */}
         {totalPages > 1 && (
