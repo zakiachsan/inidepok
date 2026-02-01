@@ -30,6 +30,8 @@ export async function POST(request: NextRequest) {
         const validPostIds = [...new Set(postIdsInCategories.map(p => p.postId))]
           .filter(id => !excludeIds.includes(id))
 
+        const threeMonthsAgo = sql`NOW() - INTERVAL '3 months'`
+
         if (validPostIds.length > 0) {
           const postsResult = await db
             .select({
@@ -44,7 +46,8 @@ export async function POST(request: NextRequest) {
             .from(posts)
             .where(and(
               inArray(posts.id, validPostIds.slice(0, 20)),
-              eq(posts.status, 'PUBLISHED')
+              eq(posts.status, 'PUBLISHED'),
+              sql`${posts.publishedAt} >= ${threeMonthsAgo}`
             ))
             .orderBy(desc(posts.viewCount), desc(posts.publishedAt))
             .limit(3)
@@ -69,6 +72,8 @@ export async function POST(request: NextRequest) {
     if (recommendations.length < 3) {
       const existingIds = [...excludeIds, ...recommendations.map(r => r.id)]
 
+      const threeMonthsAgo = sql`NOW() - INTERVAL '3 months'`
+
       const additionalPosts = await db
         .select({
           id: posts.id,
@@ -82,6 +87,7 @@ export async function POST(request: NextRequest) {
         .from(posts)
         .where(and(
           eq(posts.status, 'PUBLISHED'),
+          sql`${posts.publishedAt} >= ${threeMonthsAgo}`,
           existingIds.length > 0 ? sql`${posts.id} NOT IN (${sql.join(existingIds.map(id => sql`${id}`), sql`, `)})` : sql`1=1`
         ))
         .orderBy(desc(posts.viewCount))

@@ -30,7 +30,7 @@ export default function PopularPosts({
       try {
         // For now, fetch posts and sort by viewCount on client
         // Later, add a dedicated API endpoint for popular posts
-        const res = await fetch(`/api/posts?limit=${limit * 2}`)
+        const res = await fetch(`/api/popular?limit=${limit * 2}`)
         const data = await res.json()
         const sortedPosts = (data.posts || [])
           .sort((a: Post, b: Post) => b.viewCount - a.viewCount)
