@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { Sidebar, SidebarWidget, SidebarAd } from '@/components/layout'
 import { PostCard } from '@/components/posts'
 import { ReadingTracker } from '../../../components/posts/ReadingTracker'
-import { db, posts, users, categories, tags, comments, postCategories, postTags, eq, and, desc, sql, inArray, count, asc } from '@/db'
+import { db, posts, pages, users, categories, tags, comments, postCategories, postTags, eq, and, desc, sql, inArray, count, asc } from '@/db'
 import {
   generateArticleSchema,
   generateBreadcrumbSchema,
@@ -13,6 +13,28 @@ import {
 
 // Force dynamic rendering to fetch data at runtime
 export const dynamic = 'force-dynamic'
+
+// Fetch static page by slug
+async function getStaticPage(slug: string) {
+  try {
+    const [page] = await db.select().from(pages).where(eq(pages.slug, slug)).limit(1)
+    if (!page || page.status !== 'PUBLISHED') return null
+
+    const [author] = await db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, page.authorId))
+      .limit(1)
+
+    return {
+      ...page,
+      author: author || { name: 'Admin' },
+    }
+  } catch (error) {
+    console.error('Failed to fetch page:', error)
+    return null
+  }
+}
 
 // Fetch post by slug
 async function getPost(slug: string) {
@@ -192,9 +214,34 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params
+
+  // Check for static page first
+  const page = await getStaticPage(slug)
+  if (page) {
+    const title = page.metaTitle || page.title
+    const description = page.metaDescription || page.excerpt || ''
+    const canonicalUrl = getCanonicalUrl(`/${slug}`)
+
+    return {
+      title,
+      description,
+      alternates: { canonical: canonicalUrl },
+      openGraph: {
+        title,
+        description,
+        type: 'website',
+        url: canonicalUrl,
+        siteName: 'Ini Depok',
+        locale: 'id_ID',
+      },
+      robots: { index: true, follow: true },
+    }
+  }
+
+  // Fall back to post
   const post = await getPost(slug)
 
-  if (!post) return { title: 'Artikel Tidak Ditemukan' }
+  if (!post) return { title: 'Halaman Tidak Ditemukan' }
 
   const title = post.metaTitle || post.title
   const description = post.metaDescription || post.excerpt || post.content.replace(/<[^>]*>/g, '').substring(0, 160)
@@ -235,6 +282,85 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function ArticlePage({ params }: PageProps) {
   const { slug } = await params
+
+  // Check for static page first
+  const page = await getStaticPage(slug)
+  if (page) {
+    const [popularPosts, allCategories] = await Promise.all([
+      getPopularPosts(),
+      getCategories(),
+    ])
+
+    return (
+      <div className="container py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          <article className="flex-1">
+            {/* Breadcrumb */}
+            <nav className="mb-4 text-sm">
+              <ol className="flex items-center gap-2 text-gray-500">
+                <li><Link href="/" className="hover:text-primary-600">Beranda</Link></li>
+                <li>/</li>
+                <li className="text-gray-700">{page.title}</li>
+              </ol>
+            </nav>
+
+            {/* Page Header */}
+            <header className="mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{page.title}</h1>
+            </header>
+
+            {/* Featured Image */}
+            {page.featuredImage && (
+              <div className="mb-6 rounded-lg overflow-hidden">
+                <img src={page.featuredImage} alt={page.title} className="w-full h-auto" />
+              </div>
+            )}
+
+            {/* Page Content */}
+            <div className="prose prose-lg max-w-none mb-8" dangerouslySetInnerHTML={{ __html: page.content }} />
+          </article>
+
+          {/* Sidebar */}
+          <Sidebar>
+            <SidebarWidget title="Berita Populer">
+              <div className="space-y-4">
+                {popularPosts.map((post, index) => (
+                  <div key={post.id} className="flex gap-3">
+                    <span className="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded flex items-center justify-center font-bold text-sm">{index + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium text-gray-900 line-clamp-2 hover:text-primary-600 transition-colors">
+                        <Link href={`/${post.slug}`}>{post.title}</Link>
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-1">{post.viewCount.toLocaleString('id-ID')} views</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SidebarWidget>
+
+            <SidebarAd height={250} />
+
+            <SidebarWidget title="Kategori">
+              <ul className="space-y-2">
+                {allCategories.map((category) => (
+                  <li key={category.slug}>
+                    <Link href={`/category/${category.slug}`} className="flex items-center justify-between py-2 px-3 rounded hover:bg-gray-50 transition-colors">
+                      <span className="text-sm text-gray-700">{category.name}</span>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">{category._count.posts}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </SidebarWidget>
+
+            <SidebarAd height={300} />
+          </Sidebar>
+        </div>
+      </div>
+    )
+  }
+
+  // Fall back to post
   const post = await getPost(slug)
 
   if (!post || post.status !== 'PUBLISHED') notFound()

@@ -19,6 +19,7 @@ export const roleEnum = pgEnum('Role', ['ADMIN', 'AUTHOR'])
 export const postStatusEnum = pgEnum('PostStatus', ['DRAFT', 'PUBLISHED', 'ARCHIVED'])
 export const commentStatusEnum = pgEnum('CommentStatus', ['PENDING', 'APPROVED', 'REJECTED'])
 export const adTypeEnum = pgEnum('AdType', ['placeholder', 'custom', 'programmatic'])
+export const pageStatusEnum = pgEnum('PageStatus', ['DRAFT', 'PUBLISHED'])
 
 // ============================================
 // USER & AUTH
@@ -286,6 +287,37 @@ export const ads = pgTable('ads', {
 ])
 
 // ============================================
+// PAGES (Static Pages)
+// ============================================
+
+export const pages = pgTable('pages', {
+  id: text('id').primaryKey().$defaultFn(createId),
+  title: text('title').notNull(),
+  slug: text('slug').notNull().unique(),
+  content: text('content').notNull(),
+  excerpt: text('excerpt'),
+  featuredImage: text('featuredImage'),
+  authorId: text('authorId').notNull().references(() => users.id),
+  status: pageStatusEnum('status').notNull().default('DRAFT'),
+  publishedAt: timestamp('publishedAt'),
+  metaTitle: text('metaTitle'),
+  metaDescription: text('metaDescription'),
+  sortOrder: integer('sortOrder').notNull().default(0),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [
+  index('pages_status_idx').on(table.status),
+  index('pages_slug_idx').on(table.slug),
+])
+
+export const pagesRelations = relations(pages, ({ one }) => ({
+  author: one(users, {
+    fields: [pages.authorId],
+    references: [users.id],
+  }),
+}))
+
+// ============================================
 // TYPE EXPORTS
 // ============================================
 
@@ -306,3 +338,5 @@ export type Menu = typeof menus.$inferSelect
 export type MenuItem = typeof menuItems.$inferSelect
 export type Ad = typeof ads.$inferSelect
 export type NewAd = typeof ads.$inferInsert
+export type Page = typeof pages.$inferSelect
+export type NewPage = typeof pages.$inferInsert
