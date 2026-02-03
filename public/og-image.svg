@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a5f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d1b2a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  
+  <!-- Decorative elements -->
+  <circle cx="100" cy="100" r="300" fill="#2563eb" opacity="0.1"/>
+  <circle cx="1100" cy="530" r="200" fill="#2563eb" opacity="0.1"/>
+  
+  <!-- Content -->
+  <g transform="translate(600, 315)" text-anchor="middle">
+    <!-- Logo/Icon -->
+    <circle cx="0" cy="-120" r="60" fill="#2563eb"/>
+    <text x="0" y="-105" font-family="Arial, sans-serif" font-size="40" fill="white" text-anchor="middle">📰</text>
+    
+    <!-- Site Name -->
+    <text x="0" y="-30" font-family="Arial, sans-serif" font-size="56" font-weight="bold" fill="white">KILAS INDONESIA</text>
+    
+    <!-- Tagline -->
+    <text x="0" y="30" font-family="Arial, sans-serif" font-size="24" fill="#94a3b8">Portal Berita Terpercaya</text>
+    
+    <!-- Border -->
+    <rect x="-400" y="80" width="800" height="4" fill="#2563eb" rx="2"/>
+  </g>
+</svg>
