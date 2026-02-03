@@ -8,6 +8,9 @@ import {
   generateBreadcrumbSchema,
   getCanonicalUrl,
 } from '@/lib/seo'
+import { Pagination } from '@/components/common'
+
+const ITEMS_PER_PAGE = 15
 
 // Force dynamic rendering to fetch data at runtime
 export const dynamic = 'force-dynamic'
@@ -36,8 +39,10 @@ async function getCategory(slug: string) {
   }
 }
 
-// Fetch posts by category
-async function getCategoryPosts(categoryId: string) {
+// Fetch posts by category with pagination
+async function getCategoryPosts(categoryId: string, page: number = 1) {
+  const offset = (page - 1) * ITEMS_PER_PAGE
+  
   try {
     // Get post IDs for this category
     const postIds = await db
@@ -45,11 +50,11 @@ async function getCategoryPosts(categoryId: string) {
       .from(postCategories)
       .where(eq(postCategories.categoryId, categoryId))
 
-    if (postIds.length === 0) return []
+    if (postIds.length === 0) return { posts: [], hasMore: false }
 
     const ids = postIds.map(p => p.postId)
 
-    // Get published posts
+    // Get published posts with pagination
     const categoryPosts = await db
       .select()
       .from(posts)
@@ -58,10 +63,14 @@ async function getCategoryPosts(categoryId: string) {
         eq(posts.status, 'PUBLISHED')
       ))
       .orderBy(desc(posts.publishedAt))
-      .limit(11)
+      .limit(ITEMS_PER_PAGE + 1)
+      .offset(offset)
+
+    const hasMore = categoryPosts.length > ITEMS_PER_PAGE
+    const postsData = hasMore ? categoryPosts.slice(0, ITEMS_PER_PAGE) : categoryPosts
 
     // Get categories and author for each post
-    return Promise.all(categoryPosts.map(async (post) => {
+    const transformedPosts = await Promise.all(postsData.map(async (post) => {
       const cats = await db
         .select({ id: categories.id, name: categories.name, slug: categories.slug })
         .from(categories)
@@ -77,9 +86,11 @@ async function getCategoryPosts(categoryId: string) {
 
       return { ...post, categories: cats, author: author || { name: 'Unknown' } }
     }))
+
+    return { posts: transformedPosts, hasMore }
   } catch (error) {
     console.error('Failed to fetch category posts:', error)
-    return []
+    return { posts: [], hasMore: false }
   }
 }
 
@@ -234,6 +245,7 @@ async function getAllCategories() {
 
 interface PageProps {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ page?: string }>
 }
 
 export async function generateMetadata({ params }: PageProps) {
@@ -257,7 +269,7 @@ export async function generateMetadata({ params }: PageProps) {
       canonical: canonicalUrl,
     },
     openGraph: {
-      title: `${category.name} | Ini Depok`,
+      title: `${category.name} | Ini depo`,
       description,
       type: 'website',
       url: canonicalUrl,
@@ -266,7 +278,7 @@ export async function generateMetadata({ params }: PageProps) {
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${category.name} | Ini Depok`,
+      title: `${category.name} | Ini depo`,
       description,
       site: '@inidepok',
     },
@@ -277,22 +289,28 @@ export async function generateMetadata({ params }: PageProps) {
   }
 }
 
-export default async function CategoryPage({ params }: PageProps) {
+export default async function CategoryPage({ params, searchParams }: PageProps) {
   const { slug } = await params
+  const resolvedSearchParams = await searchParams
+  const currentPage = Number(resolvedSearchParams.page) || 1
+  
   const category = await getCategory(slug)
 
   if (!category) {
     notFound()
   }
 
-  // Fetch posts first to get featured post ID
-  const categoryPosts = await getCategoryPosts(category.id)
+  // Fetch posts with pagination
+  const { posts: categoryPosts, hasMore } = await getCategoryPosts(category.id, currentPage)
 
-  // Featured post is the newest one
-  const featuredPost = categoryPosts[0]
-  const remainingPosts = categoryPosts.slice(1)
+  // Calculate total pages
+  const totalPages = Math.ceil(category._count.posts / ITEMS_PER_PAGE)
 
-  // Fetch popular posts in category (excluding featured)
+  // Featured post is the newest one (only on page 1)
+  const featuredPost = currentPage === 1 && categoryPosts.length > 0 ? categoryPosts[0] : null
+  const remainingPosts = featuredPost ? categoryPosts.slice(1) : categoryPosts
+
+  // Exclude featured from popular
   const excludeIds = featuredPost ? [featuredPost.id] : []
 
   // Fetch popular posts and categories in parallel
@@ -412,17 +430,12 @@ export default async function CategoryPage({ params }: PageProps) {
                       />
                     ))}
 
-                    {/* Load More Button */}
-                    {categoryPosts.length >= 11 && (
-                      <div className="mt-8 text-center">
-                        <button className="btn btn-primary">
-                          Muat Lebih Banyak
-                          <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
+                    {/* Pagination */}
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      baseUrl={`/category/${slug}`}
+                    />
                   </div>
                 )}
               </>
@@ -431,8 +444,7 @@ export default async function CategoryPage({ params }: PageProps) {
                 <svg
                   className="w-20 h-20 mx-auto text-gray-300 mb-4"
                   fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+                  viewBox="0 0 24 24" stroke="currentColor"
                 >
                   <path
                     strokeLinecap="round"

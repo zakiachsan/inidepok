@@ -8,6 +8,9 @@ import {
   generateBreadcrumbSchema,
   getCanonicalUrl,
 } from '@/lib/seo'
+import { Pagination } from '@/components/common'
+
+const ITEMS_PER_PAGE = 15
 
 // Force dynamic rendering to fetch data at runtime
 export const dynamic = 'force-dynamic'
@@ -36,8 +39,10 @@ async function getTag(slug: string) {
   }
 }
 
-// Fetch posts by tag
-async function getTagPosts(tagId: string) {
+// Fetch posts by tag with pagination
+async function getTagPosts(tagId: string, page: number = 1) {
+  const offset = (page - 1) * ITEMS_PER_PAGE
+  
   try {
     // Get post IDs for this tag
     const postIds = await db
@@ -45,11 +50,11 @@ async function getTagPosts(tagId: string) {
       .from(postTags)
       .where(eq(postTags.tagId, tagId))
 
-    if (postIds.length === 0) return []
+    if (postIds.length === 0) return { posts: [], hasMore: false }
 
     const ids = postIds.map(p => p.postId)
 
-    // Get published posts
+    // Get published posts with pagination
     const tagPosts = await db
       .select()
       .from(posts)
@@ -58,10 +63,14 @@ async function getTagPosts(tagId: string) {
         eq(posts.status, 'PUBLISHED')
       ))
       .orderBy(desc(posts.publishedAt))
-      .limit(20)
+      .limit(ITEMS_PER_PAGE + 1)
+      .offset(offset)
+
+    const hasMore = tagPosts.length > ITEMS_PER_PAGE
+    const postsData = hasMore ? tagPosts.slice(0, ITEMS_PER_PAGE) : tagPosts
 
     // Get categories and author for each post
-    return Promise.all(tagPosts.map(async (post) => {
+    const transformedPosts = await Promise.all(postsData.map(async (post) => {
       const cats = await db
         .select({ id: categories.id, name: categories.name, slug: categories.slug })
         .from(categories)
@@ -77,9 +86,11 @@ async function getTagPosts(tagId: string) {
 
       return { ...post, categories: cats, author: author || { name: 'Unknown' } }
     }))
+
+    return { posts: transformedPosts, hasMore }
   } catch (error) {
     console.error('Failed to fetch tag posts:', error)
-    return []
+    return { posts: [], hasMore: false }
   }
 }
 
@@ -142,6 +153,7 @@ async function getCategories() {
 
 interface PageProps {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ page?: string }>
 }
 
 export async function generateMetadata({ params }: PageProps) {
@@ -165,16 +177,16 @@ export async function generateMetadata({ params }: PageProps) {
       canonical: canonicalUrl,
     },
     openGraph: {
-      title: `#${tag.name} | Ini Depok`,
+      title: `#${tag.name} | Ini depot`,
       description,
       type: 'website',
       url: canonicalUrl,
-      siteName: 'Ini Depok',
+      siteName: 'Ini depot',
       locale: 'id_ID',
     },
     twitter: {
       card: 'summary_large_image',
-      title: `#${tag.name} | Ini Depok`,
+      title: `#${tag.name} | Ini depot`,
       description,
       site: '@inidepok',
     },
@@ -185,17 +197,25 @@ export async function generateMetadata({ params }: PageProps) {
   }
 }
 
-export default async function TagPage({ params }: PageProps) {
+export default async function TagPage({ params, searchParams }: PageProps) {
   const { slug } = await params
+  const resolvedSearchParams = await searchParams
+  const currentPage = Number(resolvedSearchParams.page) || 1
+  
   const tag = await getTag(slug)
 
   if (!tag) {
     notFound()
   }
 
-  // Fetch posts, popular posts, tags, and categories in parallel
-  const [tagPosts, popularPosts, allTags, categoriesList] = await Promise.all([
-    getTagPosts(tag.id),
+  // Fetch posts with pagination
+  const { posts: tagPosts, hasMore } = await getTagPosts(tag.id, currentPage)
+
+  // Calculate total pages
+  const totalPages = Math.ceil(tag._count.posts / ITEMS_PER_PAGE)
+
+  // Fetch popular posts, tags, and categories in parallel
+  const [popularPosts, allTags, categoriesList] = await Promise.all([
     getPopularPosts(),
     getAllTags(),
     getCategories(),
@@ -303,17 +323,12 @@ export default async function TagPage({ params }: PageProps) {
                   />
                 ))}
 
-                {/* Load More Button */}
-                {tagPosts.length >= 20 && (
-                  <div className="mt-8 text-center">
-                    <button className="btn btn-primary">
-                      Muat Lebih Banyak
-                      <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
+                {/* Pagination */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  baseUrl={`/tag/${slug}`}
+                />
               </div>
             ) : (
               <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">

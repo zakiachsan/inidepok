@@ -7,39 +7,58 @@ import {
   generateBreadcrumbSchema,
   getCanonicalUrl,
 } from '@/lib/seo'
+import { Pagination } from '@/components/common'
+
+const ITEMS_PER_PAGE = 15
 
 // Force dynamic rendering to fetch data at runtime
 export const dynamic = 'force-dynamic'
 
-// Fetch all published posts
-async function getAllPosts() {
+// Fetch posts with pagination
+async function getPosts(page: number = 1) {
+  const offset = (page - 1) * ITEMS_PER_PAGE
+  
   try {
     const allPosts = await db
       .select()
       .from(posts)
       .where(eq(posts.status, 'PUBLISHED'))
       .orderBy(desc(posts.publishedAt))
-      .limit(11)
+      .limit(ITEMS_PER_PAGE + 1)
+      .offset(offset)
 
-    return Promise.all(allPosts.map(async (post) => {
-      const cats = await db
-        .select({ id: categories.id, name: categories.name, slug: categories.slug })
-        .from(categories)
-        .innerJoin(postCategories, eq(categories.id, postCategories.categoryId))
-        .where(eq(postCategories.postId, post.id))
-        .limit(1)
+    const hasMore = allPosts.length > ITEMS_PER_PAGE
+    const postsData = hasMore ? allPosts.slice(0, ITEMS_PER_PAGE) : allPosts
 
-      const [author] = await db
-        .select({ name: users.name })
-        .from(users)
-        .where(eq(users.id, post.authorId))
-        .limit(1)
-
-      return { ...post, categories: cats, author: author || { name: 'Unknown' } }
-    }))
+    return {
+      posts: postsData,
+      hasMore,
+    }
   } catch (error) {
     console.error('Failed to fetch posts:', error)
-    return []
+    return { posts: [], hasMore: false }
+  }
+}
+
+// Transform raw post to formatted post
+async function transformPost(post: any) {
+  const cats = await db
+    .select({ id: categories.id, name: categories.name, slug: categories.slug })
+    .from(categories)
+    .innerJoin(postCategories, eq(categories.id, postCategories.categoryId))
+    .where(eq(postCategories.postId, post.id))
+    .limit(1)
+
+  const [author] = await db
+    .select({ name: users.name })
+    .from(users)
+    .where(eq(users.id, post.authorId))
+    .limit(1)
+
+  return {
+    ...post,
+    categories: cats,
+    author: author || { name: 'Unknown' }
   }
 }
 
@@ -86,7 +105,7 @@ async function getPopularPosts(excludeIds: string[] = [], limit: number = 5) {
       .orderBy(desc(posts.viewCount))
       .limit(limit * 2)
 
-    const filteredAllTime = allTimePopular.filter(p => !existingIds.includes(p.id)).slice(0, limit - recentWithCats.length)
+    const filteredAllTime = allTimePopular.filter(p => !existingIds.map(String).includes(String(p.id))).slice(0, limit - recentWithCats.length)
 
     const allTimeWithCats = await Promise.all(filteredAllTime.map(async (post) => {
       const cats = await db
@@ -140,6 +159,10 @@ async function getTotalPostCount() {
   }
 }
 
+interface BeritaPageProps {
+  searchParams: Promise<{ page?: string }>
+}
+
 export async function generateMetadata() {
   const title = 'Semua Berita - Ini Depok'
   const description = 'Kumpulan berita terbaru dari berbagai kategori di Ini Depok. Dapatkan informasi terkini seputar nasional, politik, ekonomi, olahraga, dan lainnya.'
@@ -172,22 +195,29 @@ export async function generateMetadata() {
   }
 }
 
-export default async function BeritaPage() {
-  // Fetch posts first
-  const allPosts = await getAllPosts()
-
-  // Featured post is the newest one
-  const featuredPost = allPosts[0]
-  const remainingPosts = allPosts.slice(1)
+export default async function BeritaPage({ searchParams }: BeritaPageProps) {
+  const resolvedSearchParams = await searchParams
+  const currentPage = Number(resolvedSearchParams.page) || 1
+  
+  // Fetch posts and transform
+  const { posts: rawPosts, hasMore } = await getPosts(currentPage)
+  const postsData = await Promise.all(rawPosts.map(transformPost))
+  
+  // Calculate total pages
+  const totalCount = await getTotalPostCount()
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE)
+  
+  // Featured post is the newest one (only on page 1)
+  const featuredPost = currentPage === 1 && postsData.length > 0 ? postsData[0] : null
+  const remainingPosts = featuredPost ? postsData.slice(1) : postsData
 
   // Exclude featured from popular
   const excludeIds = featuredPost ? [featuredPost.id] : []
 
   // Fetch other data in parallel
-  const [sidebarPopularPosts, allCategories, totalCount] = await Promise.all([
+  const [sidebarPopularPosts, allCategories] = await Promise.all([
     getPopularPosts(excludeIds, 5),
     getAllCategories(),
-    getTotalPostCount(),
   ])
 
   // Generate JSON-LD schemas
@@ -197,7 +227,7 @@ export default async function BeritaPage() {
     'berita',
     'Kumpulan berita terbaru dari berbagai kategori',
     totalCount,
-    allPosts.slice(0, 10).map((p) => ({ slug: p.slug, title: p.title }))
+    postsData.slice(0, 10).map((p) => ({ slug: p.slug, title: p.title }))
   )
 
   const breadcrumbSchema = generateBreadcrumbSchema([
@@ -238,9 +268,9 @@ export default async function BeritaPage() {
               </ol>
             </nav>
 
-            {allPosts.length > 0 ? (
+            {postsData.length > 0 ? (
               <>
-                {/* Featured Article */}
+                {/* Featured Article (only on page 1) */}
                 {featuredPost && (
                   <section className="mb-6">
                     <PostCard
@@ -275,17 +305,12 @@ export default async function BeritaPage() {
                       />
                     ))}
 
-                    {/* Load More Button */}
-                    {allPosts.length >= 11 && (
-                      <div className="mt-8 text-center">
-                        <button className="btn btn-primary">
-                          Muat Lebih Banyak
-                          <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
+                    {/* Pagination */}
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      baseUrl="/berita"
+                    />
                   </div>
                 )}
               </>
@@ -294,8 +319,7 @@ export default async function BeritaPage() {
                 <svg
                   className="w-20 h-20 mx-auto text-gray-300 mb-4"
                   fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+                  viewBox="0 0 24 24" stroke="currentColor"
                 >
                   <path
                     strokeLinecap="round"
