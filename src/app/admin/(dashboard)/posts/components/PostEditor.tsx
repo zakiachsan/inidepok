@@ -29,7 +29,8 @@ interface PostData {
   content: string
   excerpt: string
   featuredImage: string
-  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+  status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED'
+  scheduledAt: string
   categoryIds: string[]
   tagIds: string[]
   metaTitle: string
@@ -41,6 +42,7 @@ interface PostEditorProps {
   categories: Category[]
   tags: Tag[]
   isEdit?: boolean
+  defaultStatus?: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED'
 }
 
 function slugify(text: string): string {
@@ -63,6 +65,7 @@ export default function PostEditor({
   categories,
   tags: initialTags,
   isEdit = false,
+  defaultStatus = 'DRAFT',
 }: PostEditorProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -74,7 +77,8 @@ export default function PostEditor({
     content: post?.content || '',
     excerpt: post?.excerpt || '',
     featuredImage: post?.featuredImage || '',
-    status: post?.status || 'DRAFT',
+    status: post?.status || defaultStatus,
+    scheduledAt: post?.scheduledAt || '',
     categoryIds: post?.categoryIds || [],
     tagIds: post?.tagIds || [],
     metaTitle: post?.metaTitle || '',
@@ -238,7 +242,8 @@ export default function PostEditor({
         throw new Error(data.error || 'Gagal menyimpan artikel')
       }
 
-      router.push('/admin/posts')
+      const redirectUrl = formData.status === 'SCHEDULED' ? '/admin/scheduled' : '/admin/posts'
+      router.push(redirectUrl)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal menyimpan artikel')
@@ -449,9 +454,27 @@ export default function PostEditor({
                 >
                   <option value="DRAFT">Draft</option>
                   <option value="PUBLISHED">Dipublikasi</option>
+                  <option value="SCHEDULED">Terjadwal</option>
                   <option value="ARCHIVED">Arsip</option>
                 </select>
               </div>
+
+              {formData.status === 'SCHEDULED' && (
+                <div>
+                  <label htmlFor="scheduledAt" className="block text-xs font-medium text-gray-700 mb-1">
+                    Jadwal Publikasi
+                  </label>
+                  <input
+                    type="datetime-local"
+                    id="scheduledAt"
+                    value={formData.scheduledAt}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, scheduledAt: e.target.value }))}
+                    min={new Date().toISOString().slice(0, 16)}
+                    required
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  />
+                </div>
+              )}
 
               <div className="pt-3 border-t border-gray-200 flex gap-2">
                 <button

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, posts, users, categories, tags, postCategories, postTags, eq, desc, and, or, ilike, sql, count } from '@/db'
+import { db, posts, users, categories, tags, postCategories, postTags, eq, desc, and, or, ilike, sql, count, lte } from '@/db'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,9 +11,18 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
 
     const offset = (page - 1) * limit
+    const now = new Date()
 
-    // Build conditions
-    const conditions = [eq(posts.status, 'PUBLISHED')]
+    // Build conditions - include PUBLISHED posts and SCHEDULED posts past their time
+    const conditions = [
+      or(
+        eq(posts.status, 'PUBLISHED'),
+        and(
+          eq(posts.status, 'SCHEDULED'),
+          lte(posts.scheduledAt, now)
+        )
+      )!
+    ]
 
     if (search) {
       conditions.push(

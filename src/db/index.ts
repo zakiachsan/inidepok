@@ -37,4 +37,4 @@ export const db = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
 })
 
 export * from './schema'
-export { eq, and, or, desc, asc, sql, like, ilike, inArray, isNull, isNotNull, count, ne, notInArray } from 'drizzle-orm'
+export { eq, and, or, desc, asc, sql, like, ilike, inArray, isNull, isNotNull, count, ne, notInArray, lte, gte } from 'drizzle-orm'

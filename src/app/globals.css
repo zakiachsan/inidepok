@@ -1142,3 +1142,87 @@ body {
   padding: 0;
   color: inherit;
 }
+
+/* Article Insert (Baca Juga) Styles */
+.article-insert {
+  display: block;
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  background-color: var(--primary-50);
+  border-left: 4px solid var(--primary-500);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  transition: background-color var(--transition-fast);
+}
+
+.article-insert:hover {
+  background-color: var(--primary-100);
+}
+
+.article-insert-link {
+  display: block;
+  color: var(--gray-800);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.article-insert-link:hover {
+  color: var(--primary-700);
+}
+
+.article-insert-label {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--primary-600);
+  margin-right: 0.25rem;
+}
+
+/* Article Insert in ProseMirror Editor */
+.ProseMirror .article-insert {
+  user-select: none;
+  cursor: pointer;
+}
+
+.ProseMirror .article-insert.ProseMirror-selectednode {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* Article Insert in rendered prose */
+.prose .article-insert,
+.prose [data-article-insert] {
+  display: block;
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  background-color: var(--primary-50);
+  border-left: 4px solid var(--primary-500);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  transition: background-color var(--transition-fast);
+}
+
+.prose .article-insert:hover,
+.prose [data-article-insert]:hover {
+  background-color: var(--primary-100);
+}
+
+.prose .article-insert-link,
+.prose [data-article-insert] a {
+  display: block;
+  color: var(--gray-800);
+  text-decoration: none !important;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.prose .article-insert-link:hover,
+.prose [data-article-insert] a:hover {
+  color: var(--primary-700);
+}
+
+.prose .article-insert-label,
+.prose [data-article-insert] .article-insert-label {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--primary-600);
+  margin-right: 0.25rem;
+}

@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { db, posts, categories, comments, users, postCategories, eq, desc, count } from '@/db'
+import { db, posts, categories, comments, users, postCategories, eq, desc, count, sql } from '@/db'
+import { LineChart } from './components/LineChart'
 
 async function getStats() {
   try {
@@ -78,37 +79,45 @@ async function getRecentPosts() {
   }
 }
 
-async function getRecentComments() {
+async function getMonthlyPublishedStats() {
   try {
-    const recentComments = await db
-      .select()
-      .from(comments)
-      .orderBy(desc(comments.createdAt))
-      .limit(5)
+    const currentYear = new Date().getFullYear()
+    const result = await db.execute(sql`
+      SELECT
+        EXTRACT(MONTH FROM "publishedAt")::integer as month,
+        COUNT(*)::integer as count
+      FROM posts
+      WHERE status = 'PUBLISHED'
+        AND "publishedAt" IS NOT NULL
+        AND EXTRACT(YEAR FROM "publishedAt") = ${currentYear}
+      GROUP BY month
+      ORDER BY month
+    `)
 
-    return Promise.all(recentComments.map(async (comment) => {
-      const [post] = await db
-        .select({ title: posts.title, slug: posts.slug })
-        .from(posts)
-        .where(eq(posts.id, comment.postId))
-        .limit(1)
-
+    // Create array for all 12 months, filling in zeros for months with no data
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    const monthlyData = monthNames.map((label, index) => {
+      const monthData = result.rows.find((row: { month: number; count: number }) => row.month === index + 1)
       return {
-        ...comment,
-        post: post || { title: 'Unknown', slug: '#' },
+        label,
+        value: monthData ? Number(monthData.count) : 0,
       }
-    }))
+    })
+
+    return monthlyData
   } catch (error) {
-    console.error('Failed to fetch recent comments:', error)
-    return []
+    console.error('Failed to fetch monthly stats:', error)
+    // Return empty data for all months
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    return monthNames.map((label) => ({ label, value: 0 }))
   }
 }
 
 export default async function AdminDashboard() {
-  const [stats, recentPosts, recentComments] = await Promise.all([
+  const [stats, recentPosts, monthlyStats] = await Promise.all([
     getStats(),
     getRecentPosts(),
-    getRecentComments(),
+    getMonthlyPublishedStats(),
   ])
 
   const statCards = [
@@ -195,8 +204,13 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      {/* Recent Content Grid */}
+      {/* Chart & Recent Posts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Monthly Chart */}
+        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
+          <LineChart data={monthlyStats} title={`Artikel Dipublikasi ${new Date().getFullYear()}`} />
+        </div>
+
         {/* Recent Posts */}
         <div className="bg-white rounded-md shadow-sm border border-gray-200">
           <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200">
@@ -238,63 +252,6 @@ export default async function AdminDashboard() {
                         ? 'Draft'
                         : 'Arsip'}
                     </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Recent Comments */}
-        <div className="bg-white rounded-md shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200">
-            <h2 className="text-sm font-semibold text-gray-900">Komentar Terbaru</h2>
-            <Link href="/admin/comments" className="text-xs text-red-600 hover:text-red-700">
-              Lihat Semua →
-            </Link>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {recentComments.length === 0 ? (
-              <div className="p-4 text-center text-xs text-gray-500">
-                Belum ada komentar
-              </div>
-            ) : (
-              recentComments.map((comment) => (
-                <div key={comment.id} className="px-3 py-2 hover:bg-gray-50">
-                  <div className="flex items-start gap-2">
-                    <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-gray-600 text-[10px] font-medium">
-                        {comment.authorName.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-medium text-gray-900 text-xs">
-                          {comment.authorName}
-                        </span>
-                        <span
-                          className={`px-1 py-0.5 text-[9px] rounded ${
-                            comment.status === 'APPROVED'
-                              ? 'bg-green-100 text-green-700'
-                              : comment.status === 'PENDING'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {comment.status === 'APPROVED'
-                            ? 'OK'
-                            : comment.status === 'PENDING'
-                            ? 'Pending'
-                            : 'Ditolak'}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-gray-600 line-clamp-1 mt-0.5">
-                        {comment.content}
-                      </p>
-                      <p className="text-[9px] text-gray-400 mt-0.5">
-                        pada &quot;{comment.post.title.substring(0, 25)}...&quot;
-                      </p>
-                    </div>
                   </div>
                 </div>
               ))

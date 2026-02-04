@@ -7,7 +7,14 @@ import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
 import Underline from '@tiptap/extension-underline'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState, useEffect } from 'react'
+import { ArticleInsert } from './extensions'
+
+interface SearchArticle {
+  id: string
+  title: string
+  slug: string
+}
 
 interface RichTextEditorProps {
   content: string
@@ -26,6 +33,10 @@ export default function RichTextEditor({
   const [linkUrl, setLinkUrl] = useState('')
   const [showImageUrlInput, setShowImageUrlInput] = useState(false)
   const [imageUrl, setImageUrl] = useState('')
+  const [showArticleSearch, setShowArticleSearch] = useState(false)
+  const [articleSearchQuery, setArticleSearchQuery] = useState('')
+  const [articleSearchResults, setArticleSearchResults] = useState<SearchArticle[]>([])
+  const [searchingArticles, setSearchingArticles] = useState(false)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -53,6 +64,7 @@ export default function RichTextEditor({
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
+      ArticleInsert,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -129,6 +141,56 @@ export default function RichTextEditor({
     setShowImageUrlInput(false)
     setImageUrl('')
   }, [editor, imageUrl])
+
+  // Debounced article search
+  useEffect(() => {
+    if (!articleSearchQuery || articleSearchQuery.length < 2) {
+      setArticleSearchResults([])
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setSearchingArticles(true)
+      try {
+        const res = await fetch(`/api/posts?search=${encodeURIComponent(articleSearchQuery)}&limit=5`)
+        if (res.ok) {
+          const data = await res.json()
+          setArticleSearchResults(
+            data.posts.map((p: { id: string; title: string; slug: string }) => ({
+              id: p.id,
+              title: p.title,
+              slug: p.slug,
+            }))
+          )
+        }
+      } catch (error) {
+        console.error('Search error:', error)
+      } finally {
+        setSearchingArticles(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [articleSearchQuery])
+
+  const insertArticleReference = useCallback(
+    (article: SearchArticle) => {
+      if (!editor) return
+      editor
+        .chain()
+        .focus()
+        .setArticleInsert({
+          postId: article.id,
+          title: article.title,
+          slug: article.slug,
+        })
+        .run()
+      setShowArticleSearch(false)
+      setArticleSearchQuery('')
+      setArticleSearchResults([])
+    },
+    [editor]
+  )
 
   if (!editor) {
     return (
@@ -361,6 +423,54 @@ export default function RichTextEditor({
               >
                 OK
               </button>
+            </div>
+          )}
+        </div>
+
+        <ToolbarDivider />
+
+        {/* Article Insert */}
+        <div className="relative">
+          <ToolbarButton
+            onClick={() => setShowArticleSearch(!showArticleSearch)}
+            title="Sisipkan Artikel (Baca Juga)"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </ToolbarButton>
+          {showArticleSearch && (
+            <div className="absolute top-full left-0 mt-1 p-2 bg-white border rounded-lg shadow-lg z-10 w-72">
+              <input
+                type="text"
+                value={articleSearchQuery}
+                onChange={(e) => setArticleSearchQuery(e.target.value)}
+                placeholder="Cari artikel..."
+                className="w-full px-2 py-1.5 border rounded text-sm mb-2"
+                autoFocus
+              />
+              {searchingArticles && (
+                <div className="text-xs text-gray-500 py-2 text-center">Mencari...</div>
+              )}
+              {!searchingArticles && articleSearchResults.length > 0 && (
+                <div className="max-h-48 overflow-y-auto">
+                  {articleSearchResults.map((article) => (
+                    <button
+                      key={article.id}
+                      onClick={() => insertArticleReference(article)}
+                      className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 rounded truncate"
+                    >
+                      {article.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!searchingArticles && articleSearchQuery.length >= 2 && articleSearchResults.length === 0 && (
+                <div className="text-xs text-gray-500 py-2 text-center">Tidak ada artikel ditemukan</div>
+              )}
+              {articleSearchQuery.length < 2 && (
+                <div className="text-xs text-gray-400 py-2 text-center">Ketik minimal 2 karakter</div>
+              )}
             </div>
           )}
         </div>

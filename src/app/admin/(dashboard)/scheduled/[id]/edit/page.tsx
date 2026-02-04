@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { db, posts, categories, tags, postCategories, postTags, eq, asc } from '@/db'
-import PostEditor from '../../components/PostEditor'
+import PostEditor from '../../../posts/components/PostEditor'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -50,7 +50,7 @@ async function getData(id: string) {
   }
 }
 
-export default async function EditPostPage({ params }: PageProps) {
+export default async function EditScheduledPostPage({ params }: PageProps) {
   const { id } = await params
   const { post, categories: allCategories, tags: allTags } = await getData(id)
 
@@ -81,7 +81,7 @@ export default async function EditPostPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Artikel</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Edit Jadwal Artikel</h1>
         <p className="text-sm text-gray-500 mt-1">
           {post.title}
         </p>

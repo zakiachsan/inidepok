@@ -81,6 +81,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       excerpt,
       featuredImage,
       status,
+      scheduledAt,
       categoryIds,
       tagIds,
       metaTitle,
@@ -93,6 +94,22 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         { error: 'Judul, slug, dan konten wajib diisi' },
         { status: 400 }
       )
+    }
+
+    // Validate scheduled posts
+    if (status === 'SCHEDULED') {
+      if (!scheduledAt) {
+        return NextResponse.json(
+          { error: 'Jadwal publikasi wajib diisi untuk artikel terjadwal' },
+          { status: 400 }
+        )
+      }
+      if (new Date(scheduledAt) <= new Date()) {
+        return NextResponse.json(
+          { error: 'Jadwal publikasi harus di masa depan' },
+          { status: 400 }
+        )
+      }
     }
 
     // Check if post exists
@@ -133,6 +150,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       publishedAt = null
     }
 
+    // Determine scheduledAt
+    const newScheduledAt = status === 'SCHEDULED' ? new Date(scheduledAt) : null
+
     // Update post
     const [post] = await db
       .update(posts)
@@ -143,6 +163,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         excerpt: excerpt || null,
         featuredImage: featuredImage || null,
         status,
+        scheduledAt: newScheduledAt,
         publishedAt,
         metaTitle: metaTitle || null,
         metaDescription: metaDescription || null,
