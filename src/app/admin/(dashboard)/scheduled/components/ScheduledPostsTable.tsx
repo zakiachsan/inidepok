@@ -8,7 +8,7 @@ interface Post {
   id: string
   title: string
   slug: string
-  status: 'SCHEDULED'
+  status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED'
   scheduledAt: Date | null
   viewCount: number
   createdAt: Date
