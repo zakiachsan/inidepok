@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, posts, users, categories, tags, comments, postCategories, postTags, eq, and, desc, ne, sql, inArray, isNull } from '@/db'
+import { db, posts, users, categories, tags, comments, postCategories, postTags, eq, and, desc, sql, inArray, isNull } from '@/db'
 
 interface RouteParams {
   params: Promise<{ slug: string }>

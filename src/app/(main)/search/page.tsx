@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Sidebar, SidebarWidget, SidebarAd } from '@/components/layout'
 import { PostCard } from '@/components/posts'
-import prisma from '@/lib/db'
+import { db, posts, categories, tags, users, postCategories, postTags, eq, or, ilike, desc, asc, count } from '@/db'
 import { getCanonicalUrl } from '@/lib/seo'
 
 // Search posts by query
@@ -9,23 +9,42 @@ async function searchPosts(query: string) {
   if (!query) return []
 
   try {
-    const posts = await prisma.post.findMany({
-      where: {
-        status: 'PUBLISHED',
-        OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { excerpt: { contains: query, mode: 'insensitive' } },
-          { content: { contains: query, mode: 'insensitive' } },
-        ],
-      },
-      include: {
-        categories: { take: 1 },
-        author: { select: { name: true } },
-      },
-      orderBy: { publishedAt: 'desc' },
-      take: 20,
-    })
-    return posts
+    const results = await db
+      .select()
+      .from(posts)
+      .where(
+        or(
+          ilike(posts.title, `%${query}%`),
+          ilike(posts.excerpt, `%${query}%`),
+          ilike(posts.content, `%${query}%`)
+        )
+      )
+      .orderBy(desc(posts.publishedAt))
+      .limit(20)
+
+    // Filter only published and add relations
+    const publishedPosts = results.filter(p => p.status === 'PUBLISHED')
+
+    return Promise.all(publishedPosts.map(async (post) => {
+      const cats = await db
+        .select({ id: categories.id, name: categories.name, slug: categories.slug })
+        .from(categories)
+        .innerJoin(postCategories, eq(categories.id, postCategories.categoryId))
+        .where(eq(postCategories.postId, post.id))
+        .limit(1)
+
+      const [author] = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, post.authorId))
+        .limit(1)
+
+      return {
+        ...post,
+        categories: cats,
+        author: author || { name: 'Unknown' }
+      }
+    }))
   } catch (error) {
     console.error('Failed to search posts:', error)
     return []
@@ -35,12 +54,23 @@ async function searchPosts(query: string) {
 // Fetch popular posts for sidebar
 async function getPopularPosts() {
   try {
-    const posts = await prisma.post.findMany({
-      where: { status: 'PUBLISHED' },
-      orderBy: { viewCount: 'desc' },
-      take: 5,
-    })
-    return posts
+    const results = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.status, 'PUBLISHED'))
+      .orderBy(desc(posts.viewCount))
+      .limit(5)
+
+    return Promise.all(results.map(async (post) => {
+      const cats = await db
+        .select({ id: categories.id, name: categories.name, slug: categories.slug })
+        .from(categories)
+        .innerJoin(postCategories, eq(categories.id, postCategories.categoryId))
+        .where(eq(postCategories.postId, post.id))
+        .limit(1)
+
+      return { ...post, categories: cats }
+    }))
   } catch (error) {
     console.error('Failed to fetch popular posts:', error)
     return []
@@ -50,13 +80,19 @@ async function getPopularPosts() {
 // Fetch categories for sidebar
 async function getCategories() {
   try {
-    const categories = await prisma.category.findMany({
-      include: {
-        _count: { select: { posts: true } },
-      },
-      orderBy: { name: 'asc' },
-    })
-    return categories
+    const results = await db
+      .select()
+      .from(categories)
+      .orderBy(asc(categories.name))
+
+    return Promise.all(results.map(async (cat) => {
+      const [result] = await db
+        .select({ count: count() })
+        .from(postCategories)
+        .where(eq(postCategories.categoryId, cat.id))
+
+      return { ...cat, _count: { posts: result?.count || 0 } }
+    }))
   } catch (error) {
     console.error('Failed to fetch categories:', error)
     return []
@@ -66,18 +102,20 @@ async function getCategories() {
 // Fetch popular tags
 async function getPopularTags() {
   try {
-    const tags = await prisma.tag.findMany({
-      include: {
-        _count: { select: { posts: true } },
-      },
-      orderBy: {
-        posts: {
-          _count: 'desc',
-        },
-      },
-      take: 10,
-    })
-    return tags
+    const results = await db
+      .select()
+      .from(tags)
+      .orderBy(asc(tags.name))
+      .limit(10)
+
+    return Promise.all(results.map(async (tag) => {
+      const [result] = await db
+        .select({ count: count() })
+        .from(postTags)
+        .where(eq(postTags.tagId, tag.id))
+
+      return { ...tag, _count: { posts: result?.count || 0 } }
+    }))
   } catch (error) {
     console.error('Failed to fetch popular tags:', error)
     return []
@@ -95,7 +133,7 @@ export async function generateMetadata({ searchParams }: PageProps) {
   if (q) {
     return {
       title: `Hasil Pencarian: ${q}`,
-      description: `Hasil pencarian untuk "${q}" di Kilas Indonesia`,
+      description: `Hasil pencarian untuk "${q}" di Ini Depok`,
       alternates: {
         canonical: canonicalUrl,
       },
@@ -108,7 +146,7 @@ export async function generateMetadata({ searchParams }: PageProps) {
 
   return {
     title: 'Pencarian',
-    description: 'Cari berita dan artikel di Kilas Indonesia',
+    description: 'Cari berita dan artikel di Ini Depok',
     alternates: {
       canonical: canonicalUrl,
     },
@@ -120,7 +158,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
   const query = q?.trim() || ''
 
   // Fetch search results, popular posts, categories, and tags in parallel
-  const [searchResults, popularPosts, categories, popularTags] = await Promise.all([
+  const [searchResults, popularPosts, allCategories, popularTags] = await Promise.all([
     searchPosts(query),
     getPopularPosts(),
     getCategories(),
@@ -318,7 +356,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
           {/* Categories Widget */}
           <SidebarWidget title="Kategori">
             <ul className="space-y-1">
-              {categories.map((category) => (
+              {allCategories.map((category) => (
                 <li key={category.slug}>
                   <Link
                     href={`/category/${category.slug}`}
