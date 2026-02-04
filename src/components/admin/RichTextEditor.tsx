@@ -78,6 +78,17 @@ export default function RichTextEditor({
     },
   })
 
+  // Sync content when prop changes (for edit mode)
+  useEffect(() => {
+    if (editor && content && !editor.isDestroyed) {
+      const currentContent = editor.getHTML()
+      // Only update if content is different and not just empty paragraph
+      if (currentContent !== content && content !== '<p></p>') {
+        editor.commands.setContent(content)
+      }
+    }
+  }, [content, editor])
+
   const handleImageUpload = useCallback(async (file: File) => {
     if (!editor) return
 
