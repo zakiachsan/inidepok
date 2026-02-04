@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/db'
+import { db, categories, eq, and, ne } from '@/db'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -26,25 +26,33 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if slug is taken by another category
-    const slugCategory = await prisma.category.findUnique({
-      where: { slug },
-    })
+    const [slugCategory] = await db
+      .select()
+      .from(categories)
+      .where(and(eq(categories.slug, slug), ne(categories.id, id)))
+      .limit(1)
 
-    if (slugCategory && slugCategory.id !== id) {
+    if (slugCategory) {
       return NextResponse.json(
         { error: 'Slug sudah digunakan' },
         { status: 400 }
       )
     }
 
-    const category = await prisma.category.update({
-      where: { id },
-      data: {
+    await db
+      .update(categories)
+      .set({
         name,
         slug,
         description: description || null,
-      },
-    })
+      })
+      .where(eq(categories.id, id))
+
+    const [category] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.id, id))
+      .limit(1)
 
     return NextResponse.json({ success: true, category })
   } catch (error) {
@@ -66,9 +74,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params
 
-    await prisma.category.delete({
-      where: { id },
-    })
+    await db.delete(categories).where(eq(categories.id, id))
 
     return NextResponse.json({ success: true })
   } catch (error) {

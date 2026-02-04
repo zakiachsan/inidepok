@@ -1,20 +1,35 @@
 import Link from 'next/link'
-import { prisma } from '@/lib/db'
+import { db, posts, users, categories, postCategories, eq, and, desc, asc } from '@/db'
 import FeaturedPostsManager from './components/FeaturedPostsManager'
 
 async function getFeaturedPosts() {
   try {
-    return await prisma.post.findMany({
-      where: {
-        isPinned: true,
-        status: 'PUBLISHED',
-      },
-      orderBy: { pinnedOrder: 'asc' },
-      include: {
-        author: { select: { name: true } },
-        categories: { select: { name: true, slug: true }, take: 1 },
-      },
-    })
+    const results = await db
+      .select()
+      .from(posts)
+      .where(and(eq(posts.isPinned, true), eq(posts.status, 'PUBLISHED')))
+      .orderBy(asc(posts.pinnedOrder))
+
+    return Promise.all(results.map(async (post) => {
+      const [author] = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, post.authorId))
+        .limit(1)
+
+      const cats = await db
+        .select({ name: categories.name, slug: categories.slug })
+        .from(categories)
+        .innerJoin(postCategories, eq(categories.id, postCategories.categoryId))
+        .where(eq(postCategories.postId, post.id))
+        .limit(1)
+
+      return {
+        ...post,
+        author: author || { name: 'Unknown' },
+        categories: cats,
+      }
+    }))
   } catch (error) {
     console.error('Failed to fetch featured posts:', error)
     return []
@@ -23,18 +38,33 @@ async function getFeaturedPosts() {
 
 async function getAvailablePosts() {
   try {
-    return await prisma.post.findMany({
-      where: {
-        isPinned: false,
-        status: 'PUBLISHED',
-      },
-      orderBy: { publishedAt: 'desc' },
-      take: 50,
-      include: {
-        author: { select: { name: true } },
-        categories: { select: { name: true, slug: true }, take: 1 },
-      },
-    })
+    const results = await db
+      .select()
+      .from(posts)
+      .where(and(eq(posts.isPinned, false), eq(posts.status, 'PUBLISHED')))
+      .orderBy(desc(posts.publishedAt))
+      .limit(50)
+
+    return Promise.all(results.map(async (post) => {
+      const [author] = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, post.authorId))
+        .limit(1)
+
+      const cats = await db
+        .select({ name: categories.name, slug: categories.slug })
+        .from(categories)
+        .innerJoin(postCategories, eq(categories.id, postCategories.categoryId))
+        .where(eq(postCategories.postId, post.id))
+        .limit(1)
+
+      return {
+        ...post,
+        author: author || { name: 'Unknown' },
+        categories: cats,
+      }
+    }))
   } catch (error) {
     console.error('Failed to fetch available posts:', error)
     return []

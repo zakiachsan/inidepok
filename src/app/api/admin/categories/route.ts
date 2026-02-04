@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/db'
+import { db, categories, eq } from '@/db'
+import { createId } from '@/db/utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,9 +22,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if slug already exists
-    const existing = await prisma.category.findUnique({
-      where: { slug },
-    })
+    const [existing] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.slug, slug))
+      .limit(1)
 
     if (existing) {
       return NextResponse.json(
@@ -32,13 +35,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const category = await prisma.category.create({
-      data: {
+    const [category] = await db
+      .insert(categories)
+      .values({
+        id: createId(),
         name,
         slug,
         description: description || null,
-      },
-    })
+      })
+      .returning()
 
     return NextResponse.json({ success: true, category })
   } catch (error) {

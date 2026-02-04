@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next'
-import { prisma } from '@/lib/db'
+import { db, posts, categories, tags, eq, desc } from '@/db'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://inidepok.com'
 
@@ -22,17 +22,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // Get all published posts
-    const posts = await prisma.post.findMany({
-      where: { status: 'PUBLISHED' },
-      select: {
-        slug: true,
-        updatedAt: true,
-        publishedAt: true,
-      },
-      orderBy: { publishedAt: 'desc' },
-    })
+    const allPosts = await db
+      .select({
+        slug: posts.slug,
+        updatedAt: posts.updatedAt,
+        publishedAt: posts.publishedAt,
+      })
+      .from(posts)
+      .where(eq(posts.status, 'PUBLISHED'))
+      .orderBy(desc(posts.publishedAt))
 
-    const postPages: MetadataRoute.Sitemap = posts.map((post) => ({
+    const postPages: MetadataRoute.Sitemap = allPosts.map((post) => ({
       url: `${BASE_URL}/${post.slug}`,
       lastModified: post.updatedAt || post.publishedAt || new Date(),
       changeFrequency: 'weekly' as const,
@@ -40,14 +40,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
 
     // Get all categories
-    const categories = await prisma.category.findMany({
-      select: {
-        slug: true,
-        createdAt: true,
-      },
-    })
+    const allCategories = await db
+      .select({
+        slug: categories.slug,
+        createdAt: categories.createdAt,
+      })
+      .from(categories)
 
-    const categoryPages: MetadataRoute.Sitemap = categories.map((category) => ({
+    const categoryPages: MetadataRoute.Sitemap = allCategories.map((category) => ({
       url: `${BASE_URL}/category/${category.slug}`,
       lastModified: category.createdAt,
       changeFrequency: 'daily' as const,
@@ -55,14 +55,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
 
     // Get all tags
-    const tags = await prisma.tag.findMany({
-      select: {
-        slug: true,
-        createdAt: true,
-      },
-    })
+    const allTags = await db
+      .select({
+        slug: tags.slug,
+        createdAt: tags.createdAt,
+      })
+      .from(tags)
 
-    const tagPages: MetadataRoute.Sitemap = tags.map((tag) => ({
+    const tagPages: MetadataRoute.Sitemap = allTags.map((tag) => ({
       url: `${BASE_URL}/tag/${tag.slug}`,
       lastModified: tag.createdAt,
       changeFrequency: 'weekly' as const,

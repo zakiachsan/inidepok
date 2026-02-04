@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/db'
+import { db, comments, eq } from '@/db'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -22,10 +22,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Status tidak valid' }, { status: 400 })
     }
 
-    const comment = await prisma.comment.update({
-      where: { id },
-      data: { status },
-    })
+    await db
+      .update(comments)
+      .set({ status: status as 'APPROVED' | 'REJECTED' | 'PENDING' })
+      .where(eq(comments.id, id))
+
+    const [comment] = await db
+      .select()
+      .from(comments)
+      .where(eq(comments.id, id))
+      .limit(1)
 
     return NextResponse.json({ success: true, comment })
   } catch (error) {
@@ -47,9 +53,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params
 
-    await prisma.comment.delete({
-      where: { id },
-    })
+    await db.delete(comments).where(eq(comments.id, id))
 
     return NextResponse.json({ success: true })
   } catch (error) {
