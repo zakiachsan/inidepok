@@ -351,7 +351,7 @@ async function main() {
     }
 
     // Clean content - remove WordPress block comments
-    let content = wpPost.postContent
+    const content = wpPost.postContent
       .replace(/<!--\s*wp:[^>]+\s*-->/g, '')  // Remove opening block comments
       .replace(/<!--\s*\/wp:[^>]+\s*-->/g, '')  // Remove closing block comments
       .replace(/<!--nextpage-->/g, '<hr/>')  // Replace page breaks with hr

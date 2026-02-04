@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import { useState } from 'react'
 
@@ -85,12 +86,12 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                     </span>
                   </div>
                   <div className="p-1">
-                    <a
+                    <Link
                       href="/admin/profile"
                       className="block px-2 py-1.5 text-xs text-gray-700 rounded hover:bg-gray-100"
                     >
                       Profil
-                    </a>
+                    </Link>
                     <button
                       onClick={() => signOut({ callbackUrl: '/admin/login' })}
                       className="w-full text-left px-2 py-1.5 text-xs text-red-600 rounded hover:bg-red-50"

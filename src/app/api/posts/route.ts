@@ -33,27 +33,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Base query for posts
-    let postsQuery = db
-      .select({
-        id: posts.id,
-        title: posts.title,
-        slug: posts.slug,
-        excerpt: posts.excerpt,
-        featuredImage: posts.featuredImage,
-        publishedAt: posts.publishedAt,
-        viewCount: posts.viewCount,
-        authorId: posts.authorId,
-        authorName: users.name,
-        authorAvatar: users.avatar,
-      })
-      .from(posts)
-      .leftJoin(users, eq(posts.authorId, users.id))
-      .where(and(...conditions))
-      .orderBy(desc(posts.publishedAt))
-      .limit(limit)
-      .offset(offset)
-
     // If filtering by category
     if (category) {
       const categoryResult = await db

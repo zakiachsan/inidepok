@@ -25,8 +25,8 @@ export function Pagination({ currentPage, totalPages, baseUrl }: PaginationProps
       pages.push(1)
       
       // Calculate range around current page
-      let start = Math.max(2, currentPage - 1)
-      let end = Math.min(totalPages - 1, currentPage + 1)
+      const start = Math.max(2, currentPage - 1)
+      const end = Math.min(totalPages - 1, currentPage + 1)
       
       // Add ellipsis if gap at start
       if (start > 2) pages.push('...')
