@@ -96,8 +96,9 @@ async function getMonthlyPublishedStats() {
 
     // Create array for all 12 months, filling in zeros for months with no data
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    const rows = result.rows as { month: number; count: number }[]
     const monthlyData = monthNames.map((label, index) => {
-      const monthData = result.rows.find((row: { month: number; count: number }) => row.month === index + 1)
+      const monthData = rows.find((row) => row.month === index + 1)
       return {
         label,
         value: monthData ? Number(monthData.count) : 0,
