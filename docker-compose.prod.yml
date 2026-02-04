@@ -1,23 +1,4 @@
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: inidepok-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-inidepok}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Database password is required}
-      POSTGRES_DB: ${POSTGRES_DB:-inidepok}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - inidepok-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-inidepok}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # Next.js Application
   app:
     image: ghcr.io/zakiachsan/inidepok:latest
@@ -28,15 +9,12 @@ services:
     container_name: inidepok-app
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-inidepok}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-inidepok}?schema=public
+      DATABASE_URL: ${DATABASE_URL:?Database URL is required}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NextAuth secret is required}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-https://inidepok.com}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://inidepok.com}
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Ini Depok}
       NODE_ENV: production
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - inidepok-network
     volumes:
@@ -75,5 +53,4 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
   uploads_data:
