@@ -9,7 +9,17 @@ export async function POST(request: NextRequest) {
       excludeIds: string[]
     }
 
-    let recommendations: any[] = []
+    type RecommendedPost = {
+      id: string
+      title: string
+      slug: string
+      excerpt: string | null
+      featuredImage: string | null
+      publishedAt: Date | null
+      viewCount: number
+      categories?: { id: string; name: string; slug: string }[]
+    }
+    let recommendations: RecommendedPost[] = []
 
     if (categorySlugs.length > 0) {
       // Get category IDs

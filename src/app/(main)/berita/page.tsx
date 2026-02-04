@@ -41,7 +41,7 @@ async function getPosts(page: number = 1) {
 }
 
 // Transform raw post to formatted post
-async function transformPost(post: any) {
+async function transformPost(post: typeof posts.$inferSelect) {
   const cats = await db
     .select({ id: categories.id, name: categories.name, slug: categories.slug })
     .from(categories)

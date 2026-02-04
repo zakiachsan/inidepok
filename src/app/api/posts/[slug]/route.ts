@@ -80,7 +80,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Get related posts (same categories)
     const categoryIds = postCats.map(c => c.id)
-    let relatedPosts: any[] = []
+    type RelatedPost = {
+      id: string
+      title: string
+      slug: string
+      excerpt: string | null
+      featuredImage: string | null
+      publishedAt: Date | null
+      categories?: { id: string; name: string; slug: string }[]
+    }
+    let relatedPosts: RelatedPost[] = []
 
     if (categoryIds.length > 0) {
       const relatedPostIds = await db
