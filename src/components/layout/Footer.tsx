@@ -48,6 +48,14 @@ export default function Footer({ links = defaultLinks }: FooterProps) {
               akurat, dan terpercaya seputar Kota Depok dan sekitarnya.
             </p>
 
+            {/* PT Info */}
+            <div className="mb-6">
+              <p className="text-sm font-medium text-gray-700 mb-1">PT. Jagonya Media Nusantara</p>
+              <p className="text-xs text-gray-500 max-w-md">
+                Jl. Prof. DR. Soepomo SH No.23 (Lt. Dasar Hotel Sofyan Soepomo), Tebet Barat, Tebet, Jakarta Selatan, DKI Jakarta
+              </p>
+            </div>
+
             {/* Connect With Us */}
             <p className="text-sm font-medium text-gray-700 mb-3">Connect With Us</p>
             {/* Social Links */}
@@ -147,18 +155,6 @@ export default function Footer({ links = defaultLinks }: FooterProps) {
                 redaksi@inidepok.com
               </p>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* PT Info */}
-      <div className="border-t border-gray-200 bg-gray-50">
-        <div className="container py-4">
-          <div className="text-center">
-            <p className="text-sm font-medium text-gray-700 mb-1">PT. Jagonya Media Nusantara</p>
-            <p className="text-xs text-gray-500">
-              Jl. Prof. DR. Soepomo SH No.23 (Lt. Dasar Hotel Sofyan Soepomo), Tebet Barat, Tebet, Jakarta Selatan, DKI Jakarta
-            </p>
           </div>
         </div>
       </div>
