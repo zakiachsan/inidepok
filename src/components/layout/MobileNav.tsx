@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -29,6 +29,7 @@ const navItems: NavItem[] = [
 
 export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
   const pathname = usePathname()
+  const isFirstRender = useRef(true)
 
   // Lock body scroll when menu is open
   useEffect(() => {
@@ -45,6 +46,10 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
 
   // Close menu on route change
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     onClose()
   }, [pathname, onClose])
 
@@ -71,7 +76,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
       <div
         className={cn(
           'mobile-menu-backdrop',
-          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          isOpen && 'open'
         )}
         onClick={onClose}
         aria-hidden="true"
@@ -82,7 +87,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
         id="mobile-menu"
         className={cn(
           'mobile-menu-drawer',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          isOpen && 'open'
         )}
         aria-label="Mobile navigation"
       >
