@@ -151,6 +151,18 @@ export default function Footer({ links = defaultLinks }: FooterProps) {
         </div>
       </div>
 
+      {/* PT Info */}
+      <div className="border-t border-gray-200 bg-gray-50">
+        <div className="container py-4">
+          <div className="text-center">
+            <p className="text-sm font-medium text-gray-700 mb-1">PT. Jagonya Media Nusantara</p>
+            <p className="text-xs text-gray-500">
+              Jl. Prof. DR. Soepomo SH No.23 (Lt. Dasar Hotel Sofyan Soepomo), Tebet Barat, Tebet, Jakarta Selatan, DKI Jakarta
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Bottom Footer */}
       <div className="border-t border-gray-200">
         <div className="container py-4">
