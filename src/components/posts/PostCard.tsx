@@ -229,11 +229,6 @@ export default function PostCard({
           <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 leading-snug">
             <Link href={`/${slug}`}>{title}</Link>
           </h3>
-          {publishedAt && (
-            <p className="text-xs text-gray-400 mt-1">
-              {formatRelativeTime(new Date(publishedAt))}
-            </p>
-          )}
         </div>
       </article>
     )

@@ -152,9 +152,17 @@ export default async function HomePage() {
   const { posts: allPosts, popularPosts, categories: allCategories } = await getHomeData()
 
   const featuredPost = allPosts[0]
-  const topPosts = allPosts.slice(1, 5)
-  const firstBatchPosts = allPosts.slice(5, 10)
-  const secondBatchPosts = allPosts.slice(10, 15)
+  // Berita Utama: Hardcoded articles from Jan & Dec 2026 (admin curated)
+  const topPosts = allPosts.filter(post => {
+    if (!post.publishedAt) return false
+    const date = new Date(post.publishedAt)
+    const month = date.getMonth() // 0 = Jan, 11 = Dec
+    const year = date.getFullYear()
+    return year === 2026 && (month === 0 || month === 11) // Januari (0) or Desember (11)
+  }).slice(0, 4)
+  // Berita Terbaru: Start from position #2 (skip featured)
+  const firstBatchPosts = allPosts.slice(1, 6)
+  const secondBatchPosts = allPosts.slice(6, 11)
 
   const currentPostIds = allPosts.map(p => p.id)
 
@@ -230,7 +238,6 @@ export default async function HomePage() {
                         title={post.title}
                         slug={post.slug}
                         featuredImage={post.featuredImage}
-                        publishedAt={post.publishedAt}
                         variant="small"
                       />
                     </div>
