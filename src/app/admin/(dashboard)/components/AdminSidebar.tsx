@@ -10,6 +10,8 @@ interface AdminSidebarProps {
     email: string
     role: string
   }
+  isOpen?: boolean
+  onClose?: () => void
 }
 
 interface MenuItem {
@@ -95,22 +97,22 @@ const menuItems: MenuItem[] = [
     adminOnly: true,
   },
   {
+    name: 'Pengguna',
+    href: '/admin/users',
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ),
+    adminOnly: true,
+  },
+  {
     name: 'Iklan',
     href: '/admin/ads',
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-      </svg>
-    ),
-    adminOnly: true,
-  },
-  {
-    name: 'Pengguna',
-    href: '/admin/users',
-    icon: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     ),
     adminOnly: true,
@@ -128,7 +130,7 @@ const menuItems: MenuItem[] = [
   },
 ]
 
-export default function AdminSidebar({ user }: AdminSidebarProps) {
+export default function AdminSidebar({ user, isOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname()
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['Artikel'])
 
@@ -140,15 +142,28 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
     )
   }
 
-  return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-56 lg:fixed lg:inset-y-0 bg-gray-900">
+  const handleLinkClick = () => {
+    if (onClose) onClose()
+  }
+
+  const sidebarContent = (
+    <>
       {/* Logo */}
-      <div className="flex items-center justify-center h-12 px-3 bg-gray-800">
-        <Link href="/admin" className="flex items-center">
+      <div className="flex items-center justify-between h-12 px-3 bg-gray-800">
+        <Link href="/admin" className="flex items-center" onClick={handleLinkClick}>
           <h1 className="text-base font-bold text-white">
-            Ini<span className="text-red-500">Depok</span>
+            ini<span className="text-primary-500">Depok</span>
           </h1>
         </Link>
+        {/* Close button for mobile */}
+        <button
+          onClick={onClose}
+          className="lg:hidden p-1 rounded-md hover:bg-gray-700 text-gray-400"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {/* Navigation */}
@@ -171,7 +186,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
                   onClick={() => toggleMenu(item.name)}
                   className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-colors text-sm ${
                     isActive
-                      ? 'bg-red-600 text-white'
+                      ? 'bg-primary-600 text-white'
                       : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                   }`}
                 >
@@ -196,9 +211,10 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
                         <Link
                           key={subItem.href}
                           href={subItem.href}
+                          onClick={handleLinkClick}
                           className={`block px-3 py-1.5 rounded-md text-xs transition-colors ${
                             isSubActive
-                              ? 'bg-red-600/80 text-white'
+                              ? 'bg-primary-600/80 text-white'
                               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                           }`}
                         >
@@ -216,9 +232,10 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
             <Link
               key={item.name}
               href={item.href}
+              onClick={handleLinkClick}
               className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm ${
                 isActive
-                  ? 'bg-red-600 text-white'
+                  ? 'bg-primary-600 text-white'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
               }`}
             >
@@ -232,7 +249,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
       {/* User Info */}
       <div className="p-3 border-t border-gray-700">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+          <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
@@ -246,6 +263,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
       <div className="p-3 border-t border-gray-700">
         <Link
           href="/"
+          onClick={handleLinkClick}
           className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -254,6 +272,30 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
           <span className="text-xs">Lihat Website</span>
         </Link>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-56 lg:fixed lg:inset-y-0 bg-gray-900">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Sidebar Overlay */}
+      {isOpen && (
+        <div className="lg:hidden fixed inset-0 z-40">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50" 
+            onClick={onClose}
+          />
+          {/* Sidebar */}
+          <aside className="fixed inset-y-0 left-0 w-56 bg-gray-900 flex flex-col z-50">
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   )
 }

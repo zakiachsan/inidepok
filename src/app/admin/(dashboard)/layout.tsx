@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
-import AdminSidebar from './components/AdminSidebar'
-import AdminHeader from './components/AdminHeader'
+import AdminLayout from './components/AdminLayout'
 
 export default async function DashboardLayout({
   children,
@@ -20,13 +19,11 @@ export default async function DashboardLayout({
     redirect('/')
   }
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <AdminSidebar user={session.user} />
-      <div className="lg:pl-56">
-        <AdminHeader user={session.user} />
-        <main className="p-4">{children}</main>
-      </div>
-    </div>
-  )
+  const user = {
+    name: session.user.name || '',
+    email: session.user.email || '',
+    role: session.user.role || '',
+  }
+
+  return <AdminLayout user={user}>{children}</AdminLayout>
 }
