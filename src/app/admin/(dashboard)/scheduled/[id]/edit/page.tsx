@@ -70,6 +70,7 @@ export default async function EditScheduledPostPage({ params }: PageProps) {
     content: post.content,
     excerpt: post.excerpt || '',
     featuredImage: post.featuredImage || '',
+    featuredImageCaption: post.featuredImageCaption || '',
     status: post.status as 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED',
     scheduledAt: scheduledAtFormatted,
     categoryIds: post.categories.map((c) => c.id),
