@@ -89,6 +89,7 @@ export const posts = pgTable('posts', {
   content: text('content').notNull(),
   excerpt: text('excerpt'),
   featuredImage: text('featuredImage'),
+  featuredImageCaption: text('featuredImageCaption'),
   authorId: text('authorId').notNull().references(() => users.id),
   status: postStatusEnum('status').notNull().default('DRAFT'),
   scheduledAt: timestamp('scheduledAt'),

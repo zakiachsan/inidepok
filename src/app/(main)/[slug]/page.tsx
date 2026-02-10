@@ -433,9 +433,16 @@ export default async function ArticlePage({ params }: PageProps) {
 
             {/* Featured Image */}
             {post.featuredImage ? (
-              <div className="mb-6 rounded-lg overflow-hidden">
-                <img src={post.featuredImage} alt={post.title} className="w-full h-auto" />
-              </div>
+              <figure className="mb-6">
+                <div className="rounded-lg overflow-hidden">
+                  <img src={post.featuredImage} alt={post.title} className="w-full h-auto" />
+                </div>
+                {post.featuredImageCaption && (
+                  <figcaption className="mt-2 text-sm text-gray-500 italic text-center">
+                    {post.featuredImageCaption}
+                  </figcaption>
+                )}
+              </figure>
             ) : (
               <div className="mb-6 aspect-video bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center">
                 <svg className="w-16 h-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

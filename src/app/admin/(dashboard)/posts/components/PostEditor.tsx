@@ -29,6 +29,7 @@ interface PostData {
   content: string
   excerpt: string
   featuredImage: string
+  featuredImageCaption: string
   status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED'
   scheduledAt: string
   categoryIds: string[]
@@ -77,6 +78,7 @@ export default function PostEditor({
     content: post?.content || '',
     excerpt: post?.excerpt || '',
     featuredImage: post?.featuredImage || '',
+    featuredImageCaption: post?.featuredImageCaption || '',
     status: post?.status || defaultStatus,
     scheduledAt: post?.scheduledAt || '',
     categoryIds: post?.categoryIds || [],
@@ -560,7 +562,7 @@ export default function PostEditor({
                   />
                   <button
                     type="button"
-                    onClick={() => setFormData((prev) => ({ ...prev, featuredImage: '' }))}
+                    onClick={() => setFormData((prev) => ({ ...prev, featuredImage: '', featuredImageCaption: '' }))}
                     className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                     title="Hapus gambar"
                   >
@@ -568,6 +570,20 @@ export default function PostEditor({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
+                </div>
+              )}
+
+              {/* Caption */}
+              {formData.featuredImage && (
+                <div className="mt-2">
+                  <label className="block text-[10px] text-gray-500 mb-1">Caption Gambar</label>
+                  <input
+                    type="text"
+                    value={formData.featuredImageCaption}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, featuredImageCaption: e.target.value }))}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-xs"
+                    placeholder="Contoh: Suasana Rakor di Depok, Selasa (10/2/2026)"
+                  />
                 </div>
               )}
             </div>
