@@ -139,7 +139,10 @@ export const prisma = {
         if (options.data?.featuredImage !== undefined) updateData.featuredImage = options.data.featuredImage
         
         if (Object.keys(updateData).length > 0) {
-          await db.update(posts).set(updateData).where(eq(posts.id, options.where.id))
+          console.log('[prisma.post.update] Updating post:', options.where.id, 'with:', updateData)
+          const result = await db.update(posts).set(updateData).where(eq(posts.id, options.where.id)).returning()
+          console.log('[prisma.post.update] Result:', result)
+          return result[0] || {}
         }
       }
       return {}
