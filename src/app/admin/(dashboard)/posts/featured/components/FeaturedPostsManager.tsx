@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 interface Post {
   id: string
@@ -10,6 +11,7 @@ interface Post {
   featuredImage: string | null
   publishedAt: Date | null
   pinnedOrder: number
+  viewCount?: number
   author: { name: string }
   categories: Array<{ name: string; slug: string }>
 }
@@ -19,19 +21,36 @@ interface FeaturedPostsManagerProps {
   initialAvailable: Post[]
 }
 
+type TabType = 'recent' | 'popular' | 'search'
+
 export default function FeaturedPostsManager({
   initialFeatured,
   initialAvailable,
 }: FeaturedPostsManagerProps) {
   const router = useRouter()
   const [featured, setFeatured] = useState(initialFeatured)
-  const [available, setAvailable] = useState(initialAvailable)
+  const [available] = useState(initialAvailable)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const [activeTab, setActiveTab] = useState<TabType>('recent')
 
-  const filteredAvailable = available.filter(post =>
-    post.title.toLowerCase().includes(search.toLowerCase())
-  )
+  // Get filtered articles based on active tab
+  const getFilteredArticles = () => {
+    let filtered = available
+
+    if (activeTab === 'search' && search.trim()) {
+      filtered = available.filter(post =>
+        post.title.toLowerCase().includes(search.toLowerCase())
+      )
+    } else if (activeTab === 'popular') {
+      filtered = [...available].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+    }
+    // 'recent' is already sorted by publishedAt from backend
+
+    return filtered.slice(0, 10)
+  }
+
+  const filteredAvailable = getFilteredArticles()
 
   async function addToFeatured(post: Post) {
     if (featured.length >= 5) {
@@ -53,7 +72,6 @@ export default function FeaturedPostsManager({
 
       if (res.ok) {
         setFeatured([...featured, { ...post, pinnedOrder: featured.length }])
-        setAvailable(available.filter(p => p.id !== post.id))
         router.refresh()
       } else {
         alert('Gagal menambahkan artikel')
@@ -80,7 +98,6 @@ export default function FeaturedPostsManager({
 
       if (res.ok) {
         setFeatured(featured.filter(p => p.id !== post.id))
-        setAvailable([post, ...available])
         router.refresh()
       } else {
         alert('Gagal menghapus artikel')
@@ -141,137 +158,242 @@ export default function FeaturedPostsManager({
     return new Date(date).toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric',
     })
   }
 
+  const isAlreadyFeatured = (postId: string) => featured.some(f => f.id === postId)
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* Featured Posts */}
-      <div className="bg-white rounded-md shadow-sm border border-gray-200">
-        <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-900">
-            Berita Utama ({featured.length}/5)
+    <div className="space-y-4">
+      {/* Featured Posts - Horizontal Cards */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold text-gray-900">
+            Berita Utama Terpilih
           </h2>
-          {saving && (
-            <span className="text-[10px] text-gray-500">Menyimpan...</span>
-          )}
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+            {featured.length}/5
+          </span>
         </div>
 
         {featured.length === 0 ? (
-          <div className="p-6 text-center text-xs text-gray-500">
-            <svg className="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+          <div className="py-8 text-center border-2 border-dashed border-gray-200 rounded-lg">
+            <svg className="w-10 h-10 mx-auto text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            Belum ada berita utama.<br />
-            Pilih dari daftar artikel di sebelah kanan.
+            <p className="text-sm text-gray-500">Pilih artikel dari daftar di bawah</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="space-y-2">
             {featured.map((post, index) => (
-              <div key={post.id} className="px-3 py-2 hover:bg-gray-50 flex items-center gap-2">
-                <div className="flex flex-col gap-0.5">
+              <div
+                key={post.id}
+                className="flex items-center gap-3 p-2 bg-orange-50 border border-orange-200 rounded-lg group"
+              >
+                {/* Order Number */}
+                <span className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  {index + 1}
+                </span>
+
+                {/* Thumbnail */}
+                <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                  {post.featuredImage ? (
+                    <Image
+                      src={post.featuredImage}
+                      alt=""
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium text-gray-900 truncate">{post.title}</h3>
+                  <p className="text-xs text-gray-500">{formatDate(post.publishedAt)}</p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => moveUp(index)}
                     disabled={index === 0 || saving}
-                    className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                    className="p-1.5 text-gray-500 hover:text-orange-600 hover:bg-orange-100 rounded disabled:opacity-30"
+                    title="Pindah ke atas"
                   >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                     </svg>
                   </button>
                   <button
                     onClick={() => moveDown(index)}
                     disabled={index === featured.length - 1 || saving}
-                    className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                    className="p-1.5 text-gray-500 hover:text-orange-600 hover:bg-orange-100 rounded disabled:opacity-30"
+                    title="Pindah ke bawah"
                   >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
+                  <button
+                    onClick={() => removeFromFeatured(post)}
+                    disabled={saving}
+                    className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-100 rounded"
+                    title="Hapus"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
-
-                <span className="w-5 h-5 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">
-                  {index + 1}
-                </span>
-
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-xs font-medium text-gray-900 truncate">
-                    {post.title}
-                  </h3>
-                  <p className="text-[10px] text-gray-500">
-                    {post.categories[0]?.name || 'Tanpa Kategori'} • {formatDate(post.publishedAt)}
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => removeFromFeatured(post)}
-                  disabled={saving}
-                  className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50"
-                  title="Hapus dari berita utama"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
               </div>
             ))}
           </div>
         )}
+
+        {saving && (
+          <p className="text-xs text-center text-gray-500 mt-2">Menyimpan...</p>
+        )}
       </div>
 
-      {/* Available Posts */}
-      <div className="bg-white rounded-md shadow-sm border border-gray-200">
-        <div className="px-3 py-2 border-b border-gray-200">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">
-            Artikel Tersedia
-          </h2>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Cari artikel..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-7 pr-3 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-red-500 focus:border-red-500"
-            />
-            <svg
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+      {/* Available Posts with Tabs */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        {/* Tabs */}
+        <div className="border-b border-gray-200">
+          <div className="flex">
+            <button
+              onClick={() => { setActiveTab('recent'); setSearch(''); }}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'recent'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+              Terbaru
+            </button>
+            <button
+              onClick={() => { setActiveTab('popular'); setSearch(''); }}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'popular'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Terpopuler
+            </button>
+            <button
+              onClick={() => setActiveTab('search')}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'search'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Cari
+            </button>
           </div>
         </div>
 
-        <div className="max-h-96 overflow-y-auto divide-y divide-gray-100">
+        {/* Search Input - Only show in search tab */}
+        {activeTab === 'search' && (
+          <div className="p-3 border-b border-gray-100">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Ketik judul artikel..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+        )}
+
+        {/* Article List */}
+        <div className="divide-y divide-gray-100">
           {filteredAvailable.length === 0 ? (
-            <div className="p-4 text-center text-xs text-gray-500">
-              {search ? 'Tidak ada artikel ditemukan' : 'Semua artikel sudah dijadikan berita utama'}
+            <div className="py-8 text-center text-sm text-gray-500">
+              {activeTab === 'search' && search
+                ? 'Tidak ada artikel ditemukan'
+                : 'Tidak ada artikel tersedia'}
             </div>
           ) : (
-            filteredAvailable.map((post) => (
-              <div key={post.id} className="px-3 py-2 hover:bg-gray-50 flex items-center gap-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-xs font-medium text-gray-900 truncate">
-                    {post.title}
-                  </h3>
-                  <p className="text-[10px] text-gray-500">
-                    {post.categories[0]?.name || 'Tanpa Kategori'} • {formatDate(post.publishedAt)}
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => addToFeatured(post)}
-                  disabled={saving || featured.length >= 5}
-                  className="px-2 py-1 text-[10px] text-white bg-orange-500 hover:bg-orange-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            filteredAvailable.map((post) => {
+              const alreadyAdded = isAlreadyFeatured(post.id)
+              return (
+                <div
+                  key={post.id}
+                  className={`flex items-center gap-3 p-3 hover:bg-gray-50 ${alreadyAdded ? 'opacity-50' : ''}`}
                 >
-                  + Tambah
-                </button>
-              </div>
-            ))
+                  {/* Thumbnail */}
+                  <div className="w-14 h-14 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                    {post.featuredImage ? (
+                      <Image
+                        src={post.featuredImage}
+                        alt=""
+                        width={56}
+                        height={56}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{post.title}</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {post.categories[0]?.name || 'Tanpa Kategori'} • {formatDate(post.publishedAt)}
+                      {activeTab === 'popular' && post.viewCount ? ` • ${post.viewCount.toLocaleString()} views` : ''}
+                    </p>
+                  </div>
+
+                  {/* Add Button */}
+                  {alreadyAdded ? (
+                    <span className="px-3 py-1.5 text-xs text-gray-400 bg-gray-100 rounded-lg">
+                      Sudah dipilih
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => addToFeatured(post)}
+                      disabled={saving || featured.length >= 5}
+                      className="px-3 py-1.5 text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      + Pilih
+                    </button>
+                  )}
+                </div>
+              )
+            })
           )}
+        </div>
+
+        {/* Footer hint */}
+        <div className="p-3 bg-gray-50 border-t border-gray-100 text-center">
+          <p className="text-xs text-gray-500">
+            Menampilkan 10 artikel {activeTab === 'recent' ? 'terbaru' : activeTab === 'popular' ? 'terpopuler' : ''}
+          </p>
         </div>
       </div>
     </div>
