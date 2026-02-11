@@ -90,9 +90,35 @@ type TagWithCount = Tag & {
 // Simple query wrapper for Prisma-like API (limited functionality)
 export const prisma = {
   post: {
-    findMany: async (options: FindManyOptions = {}): Promise<PostWithRelations[]> => {
-      const results = await db.select().from(posts).where(eq(posts.status, 'PUBLISHED')).orderBy(desc(posts.publishedAt)).limit(options.take || 100)
-      return Promise.all(results.map(async (post) => {
+    findMany: async (options: any = {}): Promise<PostWithRelations[]> => {
+      // Build where conditions
+      const conditions: any[] = []
+      
+      if (options.where?.status) {
+        conditions.push(eq(posts.status, options.where.status))
+      }
+      if (options.where?.isPinned !== undefined) {
+        conditions.push(eq(posts.isPinned, options.where.isPinned))
+      }
+      
+      // Build query
+      let query = db.select().from(posts)
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions)) as any
+      }
+      
+      // Apply ordering
+      if (options.orderBy?.pinnedOrder === 'asc') {
+        query = query.orderBy(asc(posts.pinnedOrder)) as any
+      } else {
+        query = query.orderBy(desc(posts.publishedAt)) as any
+      }
+      
+      // Apply limit
+      const results = await query.limit(options.take || 100)
+      
+      return Promise.all(results.map(async (post: any) => {
         const cats = await db.select({ id: categories.id, name: categories.name, slug: categories.slug }).from(categories).innerJoin(postCategories, eq(categories.id, postCategories.categoryId)).where(eq(postCategories.postId, post.id)).limit(1)
         const [author] = await db.select({ name: users.name }).from(users).where(eq(users.id, post.authorId)).limit(1)
         return { ...post, categories: cats, author: author || { name: 'Unknown' } }
