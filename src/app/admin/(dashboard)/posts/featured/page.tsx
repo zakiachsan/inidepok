@@ -2,6 +2,10 @@ import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import FeaturedPostsManager from './components/FeaturedPostsManager'
 
+// Disable caching to always get fresh data
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function getFeaturedPosts() {
   try {
     return await prisma.post.findMany({
