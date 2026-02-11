@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
@@ -21,8 +21,6 @@ interface FeaturedPostsManagerProps {
   initialAvailable: Post[]
 }
 
-type TabType = 'recent' | 'popular' | 'search'
-
 export default function FeaturedPostsManager({
   initialFeatured,
   initialAvailable,
@@ -32,25 +30,27 @@ export default function FeaturedPostsManager({
   const [available] = useState(initialAvailable)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
-  const [activeTab, setActiveTab] = useState<TabType>('recent')
+  const [showSearch, setShowSearch] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // Get filtered articles based on active tab
+  // Get filtered articles - show search results or recent 5
   const getFilteredArticles = () => {
-    let filtered = available
-
-    if (activeTab === 'search' && search.trim()) {
-      filtered = available.filter(post =>
+    if (search.trim()) {
+      // Search mode - search ALL articles
+      return available.filter(post =>
         post.title.toLowerCase().includes(search.toLowerCase())
-      )
-    } else if (activeTab === 'popular') {
-      filtered = [...available].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+      ).slice(0, 15)
     }
-    // 'recent' is already sorted by publishedAt from backend
-
-    return filtered.slice(0, 10)
+    // Default - show 5 most recent
+    return available.slice(0, 5)
   }
 
   const filteredAvailable = getFilteredArticles()
+
+  const handleAddClick = () => {
+    setShowSearch(true)
+    setTimeout(() => searchInputRef.current?.focus(), 100)
+  }
 
   async function addToFeatured(post: Post) {
     if (featured.length >= 5) {
@@ -263,78 +263,80 @@ export default function FeaturedPostsManager({
         )}
       </div>
 
-      {/* Available Posts with Tabs */}
+      {/* Add Article Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {/* Tabs */}
-        <div className="border-b border-gray-200">
-          <div className="flex">
-            <button
-              onClick={() => { setActiveTab('recent'); setSearch(''); }}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'recent'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Terbaru
-            </button>
-            <button
-              onClick={() => { setActiveTab('popular'); setSearch(''); }}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'popular'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Terpopuler
-            </button>
-            <button
-              onClick={() => setActiveTab('search')}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'search'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Cari
-            </button>
+        {/* Header with Add Button */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-gray-900">Tambah Artikel</h2>
+            {!showSearch && featured.length < 5 && (
+              <button
+                onClick={handleAddClick}
+                className="px-4 py-2 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Cari & Tambah Artikel
+              </button>
+            )}
           </div>
-        </div>
 
-        {/* Search Input - Only show in search tab */}
-        {activeTab === 'search' && (
-          <div className="p-3 border-b border-gray-100">
-            <div className="relative">
+          {/* Search Input */}
+          {(showSearch || search) && (
+            <div className="mt-3 relative">
               <input
+                ref={searchInputRef}
                 type="text"
-                placeholder="Ketik judul artikel..."
+                placeholder="Ketik judul artikel yang ingin ditambahkan..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                autoFocus
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="w-full pl-10 pr-10 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               />
               <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
+              {search && (
+                <button
+                  onClick={() => { setSearch(''); setShowSearch(false); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Article List */}
-        <div className="divide-y divide-gray-100">
-          {filteredAvailable.length === 0 ? (
-            <div className="py-8 text-center text-sm text-gray-500">
-              {activeTab === 'search' && search
-                ? 'Tidak ada artikel ditemukan'
-                : 'Tidak ada artikel tersedia'}
-            </div>
-          ) : (
-            filteredAvailable.map((post) => {
+        {(showSearch || search || featured.length === 0) && (
+          <div className="divide-y divide-gray-100">
+            {!search && !showSearch && featured.length === 0 && (
+              <div className="p-4 text-center">
+                <p className="text-sm text-gray-500 mb-3">Belum ada artikel terpilih</p>
+                <button
+                  onClick={handleAddClick}
+                  className="px-4 py-2 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors"
+                >
+                  + Cari & Tambah Artikel
+                </button>
+              </div>
+            )}
+
+            {(search || showSearch) && filteredAvailable.length === 0 && (
+              <div className="py-8 text-center text-sm text-gray-500">
+                {search ? 'Tidak ada artikel ditemukan' : 'Ketik untuk mencari artikel...'}
+              </div>
+            )}
+
+            {(search || showSearch) && filteredAvailable.map((post) => {
               const alreadyAdded = isAlreadyFeatured(post.id)
               return (
                 <div
@@ -342,18 +344,18 @@ export default function FeaturedPostsManager({
                   className={`flex items-center gap-3 p-3 hover:bg-gray-50 ${alreadyAdded ? 'opacity-50' : ''}`}
                 >
                   {/* Thumbnail */}
-                  <div className="w-14 h-14 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                  <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                     {post.featuredImage ? (
                       <Image
                         src={post.featuredImage}
                         alt=""
-                        width={56}
-                        height={56}
+                        width={48}
+                        height={48}
                         className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </div>
@@ -362,17 +364,19 @@ export default function FeaturedPostsManager({
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{post.title}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <h3 className="text-sm font-medium text-gray-900 line-clamp-1">{post.title}</h3>
+                    <p className="text-xs text-gray-500">
                       {post.categories[0]?.name || 'Tanpa Kategori'} • {formatDate(post.publishedAt)}
-                      {activeTab === 'popular' && post.viewCount ? ` • ${post.viewCount.toLocaleString()} views` : ''}
                     </p>
                   </div>
 
                   {/* Add Button */}
                   {alreadyAdded ? (
-                    <span className="px-3 py-1.5 text-xs text-gray-400 bg-gray-100 rounded-lg">
-                      Sudah dipilih
+                    <span className="px-3 py-1.5 text-xs text-green-600 bg-green-50 rounded-lg flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Terpilih
                     </span>
                   ) : (
                     <button
@@ -385,16 +389,18 @@ export default function FeaturedPostsManager({
                   )}
                 </div>
               )
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
 
-        {/* Footer hint */}
-        <div className="p-3 bg-gray-50 border-t border-gray-100 text-center">
-          <p className="text-xs text-gray-500">
-            Menampilkan 10 artikel {activeTab === 'recent' ? 'terbaru' : activeTab === 'popular' ? 'terpopuler' : ''}
-          </p>
-        </div>
+        {/* Quick suggestions when not searching */}
+        {!search && showSearch && (
+          <div className="p-3 bg-gray-50 border-t border-gray-100">
+            <p className="text-xs text-gray-500 text-center">
+              Ketik judul artikel untuk mencari dari semua {available.length} artikel
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
