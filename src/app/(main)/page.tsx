@@ -152,14 +152,11 @@ export default async function HomePage() {
   const { posts: allPosts, popularPosts, categories: allCategories } = await getHomeData()
 
   const featuredPost = allPosts[0]
-  // Berita Utama: Hardcoded articles from Jan & Dec 2026 (admin curated)
-  const topPosts = allPosts.filter(post => {
-    if (!post.publishedAt) return false
-    const date = new Date(post.publishedAt)
-    const month = date.getMonth() // 0 = Jan, 11 = Dec
-    const year = date.getFullYear()
-    return year === 2026 && (month === 0 || month === 11) // Januari (0) or Desember (11)
-  }).slice(0, 4)
+  // Berita Utama: Top posts by viewCount (excluding featured)
+  const topPosts = [...allPosts]
+    .slice(1) // exclude featured post
+    .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+    .slice(0, 4)
   // Berita Terbaru: Start from position #2 (skip featured)
   const firstBatchPosts = allPosts.slice(1, 6)
   const secondBatchPosts = allPosts.slice(6, 11)
