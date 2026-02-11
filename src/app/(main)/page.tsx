@@ -86,6 +86,39 @@ async function getPopularPostsWithRolling() {
 
 async function getHomeData() {
   try {
+    // Get featured/pinned posts for "Berita Utama"
+    const featuredPosts = await db
+      .select({
+        id: posts.id,
+        title: posts.title,
+        slug: posts.slug,
+        excerpt: posts.excerpt,
+        featuredImage: posts.featuredImage,
+        publishedAt: posts.publishedAt,
+        viewCount: posts.viewCount,
+        pinnedOrder: posts.pinnedOrder,
+      })
+      .from(posts)
+      .where(and(
+        eq(posts.status, 'PUBLISHED'),
+        eq(posts.isPinned, true)
+      ))
+      .orderBy(asc(posts.pinnedOrder))
+      .limit(5)
+
+    // Get first category for featured posts
+    const featuredWithCategories = await Promise.all(
+      featuredPosts.map(async (post) => {
+        const [cat] = await db
+          .select({ id: categories.id, name: categories.name, slug: categories.slug })
+          .from(categories)
+          .innerJoin(postCategories, eq(categories.id, postCategories.categoryId))
+          .where(eq(postCategories.postId, post.id))
+          .limit(1)
+        return { ...post, categories: cat ? [cat] : [] }
+      })
+    )
+
     // Get recent posts
     const recentPosts = await db
       .select({
@@ -141,22 +174,19 @@ async function getHomeData() {
       })
     )
 
-    return { posts: postsWithCategories, popularPosts, categories: categoriesWithCount }
+    return { posts: postsWithCategories, popularPosts, categories: categoriesWithCount, featuredPosts: featuredWithCategories }
   } catch (error) {
     console.error('Failed to fetch home data:', error)
-    return { posts: [], popularPosts: [], categories: [] }
+    return { posts: [], popularPosts: [], categories: [], featuredPosts: [] }
   }
 }
 
 export default async function HomePage() {
-  const { posts: allPosts, popularPosts, categories: allCategories } = await getHomeData()
+  const { posts: allPosts, popularPosts, categories: allCategories, featuredPosts } = await getHomeData()
 
   const featuredPost = allPosts[0]
-  // Berita Utama: Top posts by viewCount (excluding featured)
-  const topPosts = [...allPosts]
-    .slice(1) // exclude featured post
-    .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-    .slice(0, 4)
+  // Berita Utama: Use admin-curated featured posts from CMS
+  const topPosts = featuredPosts.slice(0, 4)
   // Berita Terbaru: Start from position #2 (skip featured)
   const firstBatchPosts = allPosts.slice(1, 6)
   const secondBatchPosts = allPosts.slice(6, 11)
