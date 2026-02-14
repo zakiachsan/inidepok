@@ -223,31 +223,6 @@ export default async function HomePage() {
               </section>
             )}
 
-            {/* Berita Terpopuler - Mobile Only */}
-            {popularPosts.length > 0 && (
-              <section className="mb-6 lg:hidden">
-                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-accent-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" />
-                  </svg>
-                  Berita Terpopuler
-                </h2>
-                <div className="bg-white rounded-xl shadow-sm px-4">
-                  {popularPosts.slice(0, 5).map((post) => (
-                    <PostCard
-                      key={post.id}
-                      id={post.id}
-                      title={post.title}
-                      slug={post.slug}
-                      featuredImage={post.featuredImage}
-                      publishedAt={post.publishedAt}
-                      variant="list"
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
             {/* Berita Utama */}
             {topPosts.length > 0 && (
               <section className="mb-6">
@@ -327,6 +302,31 @@ export default async function HomePage() {
                     />
                   ))}
                 </div>
+
+                {/* Berita Terpopuler - Mobile Only */}
+                {popularPosts.length > 0 && (
+                  <div className="mt-6 lg:hidden">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-accent-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" />
+                      </svg>
+                      Berita Terpopuler
+                    </h2>
+                    <div className="bg-white rounded-xl shadow-sm px-4">
+                      {popularPosts.slice(0, 5).map((post) => (
+                        <PostCard
+                          key={post.id}
+                          id={post.id}
+                          title={post.title}
+                          slug={post.slug}
+                          featuredImage={post.featuredImage}
+                          publishedAt={post.publishedAt}
+                          variant="list"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-6 text-center">
                   <Link href="/berita" className="btn btn-primary">
