@@ -84,6 +84,57 @@ async function getPopularPostsWithRolling() {
   return [...recentWithCategories, ...allTimeWithCategories]
 }
 
+// Fetch Opini posts for sidebar
+async function getOpiniPosts() {
+  try {
+    // Find Opini category
+    const opiniCategory = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.slug, 'opini'))
+      .limit(1)
+
+    if (!opiniCategory.length) {
+      return []
+    }
+
+    // Get post IDs in Opini category
+    const opiniPostIds = await db
+      .select({ postId: postCategories.postId })
+      .from(postCategories)
+      .where(eq(postCategories.categoryId, opiniCategory[0].id))
+
+    if (!opiniPostIds.length) {
+      return []
+    }
+
+    // Fetch opini posts
+    const opiniPosts = await db
+      .select({
+        id: posts.id,
+        title: posts.title,
+        slug: posts.slug,
+        excerpt: posts.excerpt,
+        featuredImage: posts.featuredImage,
+        publishedAt: posts.publishedAt,
+        authorName: users.name,
+      })
+      .from(posts)
+      .leftJoin(users, eq(posts.authorId, users.id))
+      .where(and(
+        eq(posts.status, 'PUBLISHED'),
+        sql`${posts.id} IN (${sql.join(opiniPostIds.map(p => sql`${p.postId}`), sql`, `)})`
+      ))
+      .orderBy(desc(posts.publishedAt))
+      .limit(5)
+
+    return opiniPosts.map(p => ({ ...p, author: { name: p.authorName } }))
+  } catch (error) {
+    console.error('Failed to fetch opini posts:', error)
+    return []
+  }
+}
+
 async function getHomeData() {
   try {
     // Get featured/pinned posts for "Berita Utama"
@@ -174,15 +225,18 @@ async function getHomeData() {
       })
     )
 
-    return { posts: postsWithCategories, popularPosts, categories: categoriesWithCount, featuredPosts: featuredWithCategories }
+    // Get opini posts
+    const opiniPosts = await getOpiniPosts()
+
+    return { posts: postsWithCategories, popularPosts, categories: categoriesWithCount, featuredPosts: featuredWithCategories, opiniPosts }
   } catch (error) {
     console.error('Failed to fetch home data:', error)
-    return { posts: [], popularPosts: [], categories: [], featuredPosts: [] }
+    return { posts: [], popularPosts: [], categories: [], featuredPosts: [], opiniPosts: [] }
   }
 }
 
 export default async function HomePage() {
-  const { posts: allPosts, popularPosts, categories: allCategories, featuredPosts } = await getHomeData()
+  const { posts: allPosts, popularPosts, categories: allCategories, featuredPosts, opiniPosts } = await getHomeData()
 
   const featuredPost = allPosts[0]
   // Berita Utama: Use admin-curated featured posts from CMS
@@ -377,32 +431,51 @@ export default async function HomePage() {
 
               <BannerAd slot="sidebar" width={300} height={250} />
 
-              {/* Categories Widget */}
+              {/* Opini Widget */}
               <div className="widget-card">
                 <div className="widget-header">
                   <h3>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                     </svg>
-                    Kategori
+                    Opini
                   </h3>
                 </div>
                 <div className="p-4">
-                  <ul className="space-y-1">
-                    {allCategories.map((category) => (
-                      <li key={category.slug}>
-                        <Link
-                          href={`/category/${category.slug}`}
-                          className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-primary-50 text-gray-700 hover:text-primary-700 transition-colors group"
-                        >
-                          <span className="text-sm font-medium">{category.name}</span>
-                          <span className="text-xs bg-gray-100 group-hover:bg-primary-100 text-gray-600 group-hover:text-primary-700 px-2 py-1 rounded-full transition-colors">
-                            {category._count.posts}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                  {opiniPosts.length > 0 ? (
+                    <ul className="space-y-3">
+                      {opiniPosts.map((post, index) => (
+                        <li key={post.id}>
+                          <Link
+                            href={`/${post.slug}`}
+                            className="group block"
+                          >
+                            <div className="flex gap-3">
+                              <span className="flex-shrink-0 w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">
+                                {index + 1}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-medium text-gray-800 group-hover:text-primary-700 line-clamp-2 transition-colors">
+                                  {post.title}
+                                </h4>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {post.author?.name}
+                                </p>
+                              </div>
+                            </div>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500 text-center py-4">Belum ada opini</p>
+                  )}
+                  <Link
+                    href="/category/opini"
+                    className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium mt-4 pt-3 border-t border-gray-100"
+                  >
+                    Lihat Semua Opini →
+                  </Link>
                 </div>
               </div>
 

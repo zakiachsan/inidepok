@@ -60,6 +60,19 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    name: 'Opini',
+    href: '/admin/opini',
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+      </svg>
+    ),
+    subItems: [
+      { name: 'Semua Opini', href: '/admin/opini' },
+      { name: 'Tambah Baru', href: '/admin/opini/new' },
+    ],
+  },
+  {
     name: 'Kategori',
     href: '/admin/categories',
     icon: (
@@ -152,7 +165,7 @@ export default function AdminSidebar({ user, isOpen = false, onClose }: AdminSid
       <div className="flex items-center justify-between h-12 px-3 bg-gray-800">
         <Link href="/admin" className="flex items-center" onClick={handleLinkClick}>
           <h1 className="text-base font-bold text-white">
-            ini<span className="text-primary-500">Depok</span>
+            Ini<span className="text-red-500">Depok</span>
           </h1>
         </Link>
         {/* Close button for mobile */}
@@ -186,7 +199,7 @@ export default function AdminSidebar({ user, isOpen = false, onClose }: AdminSid
                   onClick={() => toggleMenu(item.name)}
                   className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-colors text-sm ${
                     isActive
-                      ? 'bg-primary-600 text-white'
+                      ? 'bg-red-600 text-white'
                       : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                   }`}
                 >
@@ -214,7 +227,7 @@ export default function AdminSidebar({ user, isOpen = false, onClose }: AdminSid
                           onClick={handleLinkClick}
                           className={`block px-3 py-1.5 rounded-md text-xs transition-colors ${
                             isSubActive
-                              ? 'bg-primary-600/80 text-white'
+                              ? 'bg-red-600/80 text-white'
                               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                           }`}
                         >
@@ -235,7 +248,7 @@ export default function AdminSidebar({ user, isOpen = false, onClose }: AdminSid
               onClick={handleLinkClick}
               className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm ${
                 isActive
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-red-600 text-white'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
               }`}
             >
@@ -249,7 +262,7 @@ export default function AdminSidebar({ user, isOpen = false, onClose }: AdminSid
       {/* User Info */}
       <div className="p-3 border-t border-gray-700">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+          <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
