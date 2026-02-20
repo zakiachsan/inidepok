@@ -248,7 +248,11 @@ export async function generateMetadata({ params }: PageProps) {
   const canonicalUrl = getCanonicalUrl(`/${slug}`)
   const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://inidepok.com'
   const rawImageUrl = post.featuredImage || '/og-image.svg'
-  const imageUrl = rawImageUrl.startsWith('http') ? rawImageUrl : `${BASE_URL}${rawImageUrl}`
+  
+  // Use OG image API to auto-resize to 1200x630 for optimal social sharing
+  const ogImageUrl = rawImageUrl 
+    ? `${BASE_URL}/api/og-image?url=${encodeURIComponent(rawImageUrl)}`
+    : `${BASE_URL}/og-image.svg`
 
   return {
     title,
@@ -266,13 +270,13 @@ export async function generateMetadata({ params }: PageProps) {
       authors: [post.author.name],
       section: post.categories[0]?.name || 'Berita',
       tags: post.tags?.map((tag) => tag.name) || [],
-      images: [{ url: imageUrl, width: 1200, height: 630, alt: title }],
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [imageUrl],
+      images: [ogImageUrl],
       creator: '@inidepok',
       site: '@inidepok',
     },
