@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { db } from '@/db'
 import { posts, users, categories, postCategories } from '@/db/schema'
 import { eq, desc, and, inArray } from 'drizzle-orm'
@@ -8,7 +7,7 @@ import { eq, desc, and, inArray } from 'drizzle-orm'
 // GET - Fetch all opini posts
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

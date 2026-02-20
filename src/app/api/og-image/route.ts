@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       .toBuffer()
 
     // Return resized image with appropriate headers
-    return new NextResponse(resizedImage, {
+    return new NextResponse(new Uint8Array(resizedImage), {
       headers: {
         'Content-Type': 'image/jpeg',
         'Cache-Control': 'public, max-age=86400, s-maxage=86400', // Cache for 1 day
