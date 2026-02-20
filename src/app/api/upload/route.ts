@@ -62,7 +62,10 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Supabase upload error:', error)
       return NextResponse.json(
-        { error: 'Failed to upload file to storage' },
+        {
+          error: 'Failed to upload file to storage',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        },
         { status: 500 }
       )
     }
@@ -78,8 +81,12 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Upload error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to upload file'
     return NextResponse.json(
-      { error: 'Failed to upload file' },
+      {
+        error: message,
+        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
+      },
       { status: 500 }
     )
   }

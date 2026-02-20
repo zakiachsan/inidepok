@@ -59,8 +59,12 @@ export default function OptimizedImage({
     )
   }
 
-  // Handle local uploads path
-  const imageSrc = src.startsWith('/') ? src : `/${src}`
+  // Handle both absolute URLs (Supabase) and relative paths (local uploads)
+  const imageSrc = src.startsWith('http://') || src.startsWith('https://')
+    ? src
+    : src.startsWith('/')
+      ? src
+      : `/${src}`
 
   if (fill) {
     return (
