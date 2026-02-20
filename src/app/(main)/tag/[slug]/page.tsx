@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Sidebar, SidebarWidget, SidebarAd } from '@/components/layout'
+import { Sidebar, SidebarWidget } from '@/components/layout'
+import { BannerAd } from '@/components/ads'
 import { PostCard } from '@/components/posts'
 import { db, tags, posts, postTags, categories, postCategories, users, eq, and, desc, count, inArray, asc } from '@/db'
 import {
@@ -380,7 +381,7 @@ export default async function TagPage({ params, searchParams }: PageProps) {
             </SidebarWidget>
 
             {/* Ad Placeholder */}
-            <SidebarAd height={250} />
+            <BannerAd slot="sidebar-1" />
 
             {/* Tag Cloud Widget */}
             <SidebarWidget title="Tag Populer">
@@ -421,7 +422,7 @@ export default async function TagPage({ params, searchParams }: PageProps) {
             </SidebarWidget>
 
             {/* Another Ad */}
-            <SidebarAd height={300} />
+            <BannerAd slot="sidebar-2" />
           </Sidebar>
         </div>
       </div>
