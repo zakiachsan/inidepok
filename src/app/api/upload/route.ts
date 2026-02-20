@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { auth } from '@/lib/auth'
+import { supabaseAdmin, getPublicUrl } from '@/lib/supabase'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+const BUCKET_NAME = 'uploads'
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,20 +44,34 @@ export async function POST(request: NextRequest) {
     const ext = path.extname(file.name) || `.${file.type.split('/')[1]}`
     const filename = `${timestamp}-${randomStr}${ext}`
 
-    // Ensure uploads directory exists
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-    await mkdir(uploadsDir, { recursive: true })
-
-    // Write file
+    // Convert file to buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    const filepath = path.join(uploadsDir, filename)
-    await writeFile(filepath, buffer)
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabaseAdmin.storage
+      .from(BUCKET_NAME)
+      .upload(filename, buffer, {
+        contentType: file.type,
+        upsert: false,
+      })
+
+    if (error) {
+      console.error('Supabase upload error:', error)
+      return NextResponse.json(
+        { error: 'Failed to upload file to storage' },
+        { status: 500 }
+      )
+    }
+
+    // Get public URL
+    const url = getPublicUrl(BUCKET_NAME, filename)
 
     return NextResponse.json({
       success: true,
-      url: `/uploads/${filename}`,
+      url,
       filename,
+      path: data.path,
     })
   } catch (error) {
     console.error('Upload error:', error)
