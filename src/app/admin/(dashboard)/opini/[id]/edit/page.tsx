@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 
 // Redirect to posts editor
-export default function EditOpiniPage({ params }: { params: { id: string } }) {
-  redirect(`/admin/posts/${params.id}/edit`)
+export default async function EditOpiniPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  redirect(`/admin/posts/${id}/edit`)
 }
