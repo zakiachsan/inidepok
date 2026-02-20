@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 import { auth } from '@/lib/auth'
-import { supabaseAdmin, getPublicUrl } from '@/lib/supabase'
+import { getSupabaseAdmin, getPublicUrl } from '@/lib/supabase'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
@@ -48,8 +48,11 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
+    // Get Supabase client (lazy initialization)
+    const supabase = getSupabaseAdmin()
+
     // Upload to Supabase Storage
-    const { data, error } = await supabaseAdmin.storage
+    const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(filename, buffer, {
         contentType: file.type,
