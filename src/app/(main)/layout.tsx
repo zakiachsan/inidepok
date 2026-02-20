@@ -1,5 +1,6 @@
 import { TopBar, Header, MainNav, Footer } from '@/components/layout'
 import { ScrollToTop } from '@/components/common'
+import { BannerAd } from '@/components/ads'
 
 export default function MainLayout({
   children,
@@ -34,18 +35,12 @@ export default function MainLayout({
       {/* Sticky Side Ads - Desktop Only (min-width 1400px) */}
       {/* Left Side Ad */}
       <div className="hidden min-[1400px]:block fixed left-4 min-[1600px]:left-6 min-[1800px]:left-8 top-[140px] z-30">
-        <div className="side-ad-placeholder">
-          <span className="text-xs text-gray-400 font-medium">AD</span>
-          <span className="text-[10px] text-gray-300">160x600</span>
-        </div>
+        <BannerAd slot="side-left" />
       </div>
 
       {/* Right Side Ad */}
       <div className="hidden min-[1400px]:block fixed right-4 min-[1600px]:right-6 min-[1800px]:right-8 top-[140px] z-30">
-        <div className="side-ad-placeholder">
-          <span className="text-xs text-gray-400 font-medium">AD</span>
-          <span className="text-[10px] text-gray-300">160x600</span>
-        </div>
+        <BannerAd slot="side-right" />
       </div>
     </div>
   )

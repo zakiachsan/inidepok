@@ -483,6 +483,11 @@ export default async function HomePage() {
             </div>
           </aside>
         </div>
+
+        {/* Content Bottom Ad */}
+        <div className="mt-8 flex justify-center">
+          <BannerAd slot="content-bottom" />
+        </div>
       </div>
     </div>
   )
