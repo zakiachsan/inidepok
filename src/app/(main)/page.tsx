@@ -429,7 +429,7 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              <BannerAd slot="sidebar" width={300} height={250} />
+              <BannerAd slot="sidebar-1" width={300} height={250} />
 
               {/* Opini Widget */}
               <div className="widget-card">
@@ -479,7 +479,7 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              <BannerAd slot="sidebar" width={300} height={250} />
+              <BannerAd slot="sidebar-2" width={300} height={250} />
             </div>
           </aside>
         </div>
