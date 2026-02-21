@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import path from 'path'
+import sharp from 'sharp'
 import { auth } from '@/lib/auth'
 import { getSupabaseAdmin, getPublicUrl } from '@/lib/supabase'
 
@@ -38,15 +38,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate unique filename
+    // Generate unique filename (always .webp)
     const timestamp = Date.now()
     const randomStr = Math.random().toString(36).substring(2, 8)
-    const ext = path.extname(file.name) || `.${file.type.split('/')[1]}`
-    const filename = `${timestamp}-${randomStr}${ext}`
+    const filename = `${timestamp}-${randomStr}.webp`
 
-    // Convert file to buffer
+    // Convert file to buffer and optimize to WebP
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+    const webpBuffer = await sharp(buffer).webp({ quality: 80 }).toBuffer()
 
     // Get Supabase client (lazy initialization)
     const supabase = getSupabaseAdmin()
@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(filename, buffer, {
-        contentType: file.type,
+      .upload(filename, webpBuffer, {
+        contentType: 'image/webp',
         upsert: false,
       })
 
