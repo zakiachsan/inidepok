@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import ImageCropper from '@/components/admin/ImageCropper'
 
 const RichTextEditor = dynamic(
   () => import('@/components/admin/RichTextEditor'),
@@ -181,27 +182,34 @@ export default function PostEditor({
     }
   }
 
-  async function handleFeaturedImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+
+  function handleFeaturedImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
       alert('Format file tidak didukung. Gunakan JPG, PNG, atau WebP.')
       return
     }
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert('Ukuran file maksimal 5MB')
       return
     }
 
+    const objectUrl = URL.createObjectURL(file)
+    setCropImageSrc(objectUrl)
+    if (e.target) e.target.value = ''
+  }
+
+  async function handleCroppedUpload(blob: Blob) {
+    setCropImageSrc(null)
     setUploadingFeaturedImage(true)
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', new File([blob], 'cropped.jpg', { type: 'image/jpeg' }))
 
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -219,7 +227,6 @@ export default function PostEditor({
       alert(err instanceof Error ? err.message : 'Gagal upload gambar')
     } finally {
       setUploadingFeaturedImage(false)
-      if (e.target) e.target.value = ''
     }
   }
 
@@ -506,9 +513,19 @@ export default function PostEditor({
                   ref={featuredImageInputRef}
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,image/webp"
-                  onChange={handleFeaturedImageUpload}
+                  onChange={handleFeaturedImageSelect}
                   className="hidden"
                 />
+                {cropImageSrc && (
+                  <ImageCropper
+                    imageSrc={cropImageSrc}
+                    onCropComplete={handleCroppedUpload}
+                    onCancel={() => {
+                      URL.revokeObjectURL(cropImageSrc)
+                      setCropImageSrc(null)
+                    }}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => featuredImageInputRef.current?.click()}
@@ -532,7 +549,7 @@ export default function PostEditor({
                     </>
                   )}
                 </button>
-                <p className="text-[10px] text-gray-400 mt-1 text-center">JPG, PNG, WebP. Maks 5MB</p>
+                <p className="text-[10px] text-gray-400 mt-1 text-center">JPG, PNG, WebP. Maks 5MB. Output: 1200x675 (16:9)</p>
               </div>
 
               {/* URL input */}

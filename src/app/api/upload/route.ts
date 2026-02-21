@@ -46,7 +46,10 @@ export async function POST(request: NextRequest) {
     // Convert file to buffer and optimize to WebP
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    const webpBuffer = await sharp(buffer).webp({ quality: 80 }).toBuffer()
+    const webpBuffer = await sharp(buffer)
+      .resize(1200, 675, { fit: 'cover' })
+      .webp({ quality: 80 })
+      .toBuffer()
 
     // Get Supabase client (lazy initialization)
     const supabase = getSupabaseAdmin()

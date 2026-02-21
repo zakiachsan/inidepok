@@ -9,6 +9,7 @@ import TextAlign from '@tiptap/extension-text-align'
 import Underline from '@tiptap/extension-underline'
 import { useCallback, useRef, useState, useEffect } from 'react'
 import { ArticleInsert } from './extensions'
+import ImageCropper from './ImageCropper'
 
 interface SearchArticle {
   id: string
@@ -37,6 +38,7 @@ export default function RichTextEditor({
   const [articleSearchQuery, setArticleSearchQuery] = useState('')
   const [articleSearchResults, setArticleSearchResults] = useState<SearchArticle[]>([])
   const [searchingArticles, setSearchingArticles] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -89,13 +91,25 @@ export default function RichTextEditor({
     }
   }, [content, editor])
 
-  const handleImageUpload = useCallback(async (file: File) => {
-    if (!editor) return
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) {
+        const url = URL.createObjectURL(file)
+        setCropImageSrc(url)
+      }
+      e.target.value = ''
+    },
+    []
+  )
 
+  const handleCroppedUpload = useCallback(async (croppedBlob: Blob) => {
+    if (!editor) return
+    setCropImageSrc(null)
     setUploading(true)
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', croppedBlob, 'cropped.jpg')
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -117,17 +131,6 @@ export default function RichTextEditor({
       setUploading(false)
     }
   }, [editor])
-
-  const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (file) {
-        handleImageUpload(file)
-      }
-      e.target.value = ''
-    },
-    [handleImageUpload]
-  )
 
   const addLink = useCallback(() => {
     if (!editor || !linkUrl) return
@@ -387,7 +390,7 @@ export default function RichTextEditor({
         <ToolbarButton
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          title="Upload Image"
+          title="Upload Image (1200x675, 16:9)"
         >
           {uploading ? (
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -513,10 +516,25 @@ export default function RichTextEditor({
       <EditorContent editor={editor} className="min-h-[400px]" />
 
       {/* Footer with word count */}
-      <div className="flex justify-end gap-4 px-4 py-2 bg-gray-50 border-t border-gray-300 text-sm text-gray-500">
-        <span>{charCount} karakter</span>
-        <span>{wordCount} kata</span>
+      <div className="flex justify-between items-center px-4 py-2 bg-gray-50 border-t border-gray-300 text-sm text-gray-500">
+        <span>Upload gambar: 1200x675 px (16:9)</span>
+        <div className="flex gap-4">
+          <span>{charCount} karakter</span>
+          <span>{wordCount} kata</span>
+        </div>
       </div>
+
+      {/* Image Crop Modal */}
+      {cropImageSrc && (
+        <ImageCropper
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCroppedUpload}
+          onCancel={() => {
+            URL.revokeObjectURL(cropImageSrc)
+            setCropImageSrc(null)
+          }}
+        />
+      )}
     </div>
   )
 }
