@@ -386,13 +386,23 @@ export default async function ArticlePage({ params }: PageProps) {
     )
   }
 
-  // Fall back to post - redirect to new URL format with category
-  const categorySlug = await getPostCategory(slug)
-  if (categorySlug) {
-    redirect(`/${categorySlug}/${slug}`)
+  // Not a static page - try to find a post and redirect to new URL format
+  try {
+    const post = await getPost(slug)
+
+    if (post && post.status === 'PUBLISHED') {
+      // Get category and redirect
+      const categorySlug = await getPostCategory(slug)
+      if (categorySlug) {
+        redirect(`/${categorySlug}/${slug}`)
+      }
+    }
+  } catch (error) {
+    console.error('Error in post redirect:', error)
   }
 
-  const post = await getPost(slug)
+  // If we get here, show 404
+  notFound()
 
   if (!post || post.status !== 'PUBLISHED') notFound()
 
