@@ -387,8 +387,9 @@ export default async function ArticlePage({ params }: PageProps) {
   }
 
   // Not a static page - try to find a post and redirect to new URL format
+  let post = null
   try {
-    const post = await getPost(slug)
+    post = await getPost(slug)
 
     if (post && post.status === 'PUBLISHED') {
       // Get category and redirect
@@ -403,33 +404,6 @@ export default async function ArticlePage({ params }: PageProps) {
 
   // If we get here, show 404
   notFound()
-
-  if (!post || post.status !== 'PUBLISHED') notFound()
-
-  await incrementViewCount(post.id)
-
-  const categoryIds = post.categories.map((c) => c.id)
-  const [relatedPosts, popularPosts, allCategories] = await Promise.all([
-    getRelatedPosts(post.id, categoryIds),
-    getPopularPosts(),
-    getCategories(),
-  ])
-
-  const primaryCategory = post.categories[0] || { name: 'Berita', slug: 'berita' }
-  const readingTime = calculateReadingTime(post.content)
-
-  const articleSchema = generateArticleSchema(post)
-  const breadcrumbSchema = generateBreadcrumbSchema([
-    { name: 'Beranda', url: getCanonicalUrl('/') },
-    { name: primaryCategory.name, url: getCanonicalUrl(`/category/${primaryCategory.slug}`) },
-    { name: post.title, url: getCanonicalUrl(`/${post.slug}`) },
-  ])
-
-  return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      <ReadingTracker postId={post.id} slug={post.slug} categorySlug={primaryCategory.slug} />
 
       <div className="container py-6">
         <div className="flex flex-col lg:flex-row gap-6">
