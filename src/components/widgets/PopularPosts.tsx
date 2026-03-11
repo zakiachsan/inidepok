@@ -81,7 +81,7 @@ export default function PopularPosts({
           )}
           <div className="flex-1 min-w-0">
             <h4 className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors">
-              <Link href={`/${post.slug}`}>{post.title}</Link>
+              <Link href={`/berita/${post.slug}`}>{post.title}</Link>
             </h4>
             {showViewCount && (
               <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">

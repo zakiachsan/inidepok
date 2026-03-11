@@ -447,7 +447,7 @@ export default async function HomePage() {
                       {opiniPosts.map((post, index) => (
                         <li key={post.id}>
                           <Link
-                            href={`/${post.slug}`}
+                            href={`/opini/${post.slug}`}
                             className="group block"
                           >
                             <div className="flex gap-3">

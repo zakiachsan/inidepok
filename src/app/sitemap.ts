@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next'
-import { db, posts, categories, tags, eq, desc } from '@/db'
+import { db, posts, categories, tags, postCategories, eq, desc } from '@/db'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://inidepok.com'
 
@@ -21,9 +21,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
 
   try {
-    // Get all published posts
+    // Get all published posts with their primary category
     const allPosts = await db
       .select({
+        id: posts.id,
         slug: posts.slug,
         updatedAt: posts.updatedAt,
         publishedAt: posts.publishedAt,
@@ -32,12 +33,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .where(eq(posts.status, 'PUBLISHED'))
       .orderBy(desc(posts.publishedAt))
 
-    const postPages: MetadataRoute.Sitemap = allPosts.map((post) => ({
-      url: `${BASE_URL}/${post.slug}`,
-      lastModified: post.updatedAt || post.publishedAt || new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    }))
+    // Get primary category for each post
+    const postPages: MetadataRoute.Sitemap = await Promise.all(
+      allPosts.map(async (post) => {
+        // Get the first category for this post
+        const [postCat] = await db
+          .select({ slug: categories.slug })
+          .from(categories)
+          .innerJoin(postCategories, eq(categories.id, postCategories.categoryId))
+          .where(eq(postCategories.postId, post.id))
+          .limit(1)
+
+        const categorySlug = postCat?.slug || 'berita'
+
+        return {
+          url: `${BASE_URL}/${categorySlug}/${post.slug}`,
+          lastModified: post.updatedAt || post.publishedAt || new Date(),
+          changeFrequency: 'weekly' as const,
+          priority: 0.8,
+        }
+      })
+    )
 
     // Get all categories
     const allCategories = await db

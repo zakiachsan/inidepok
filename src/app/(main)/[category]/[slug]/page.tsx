@@ -37,28 +37,8 @@ async function getStaticPage(slug: string) {
   }
 }
 
-// Get post category for redirect
-async function getPostCategory(slug: string): Promise<string | null> {
-  try {
-    const [post] = await db.select({ id: posts.id }).from(posts).where(eq(posts.slug, slug)).limit(1)
-    if (!post) return null
-
-    const [cat] = await db
-      .select({ slug: categories.slug })
-      .from(categories)
-      .innerJoin(postCategories, eq(categories.id, postCategories.categoryId))
-      .where(eq(postCategories.postId, post.id))
-      .limit(1)
-
-    return cat?.slug || 'berita'
-  } catch (error) {
-    console.error('Failed to get post category:', error)
-    return null
-  }
-}
-
-// Fetch post by slug
-async function getPost(slug: string) {
+// Fetch post by slug and validate category
+async function getPost(slug: string, categorySlug?: string) {
   try {
     const [post] = await db.select().from(posts).where(eq(posts.slug, slug)).limit(1)
     if (!post) return null
@@ -76,6 +56,16 @@ async function getPost(slug: string) {
       .from(categories)
       .innerJoin(postCategories, eq(categories.id, postCategories.categoryId))
       .where(eq(postCategories.postId, post.id))
+
+    // If category is specified, validate it
+    if (categorySlug) {
+      const validCategory = postCats.find(c => c.slug === categorySlug)
+      if (!validCategory) {
+        // Category doesn't match, redirect to correct URL
+        const primaryCategory = postCats[0] || { slug: 'berita' }
+        redirect(`/${primaryCategory.slug}/${post.slug}`)
+      }
+    }
 
     // Get tags
     const postTagsList = await db
@@ -230,11 +220,11 @@ function formatRelativeTime(date: Date): string {
 }
 
 interface PageProps {
-  params: Promise<{ slug: string }>
+  params: Promise<{ category: string; slug: string }>
 }
 
 export async function generateMetadata({ params }: PageProps) {
-  const { slug } = await params
+  const { category, slug } = await params
 
   // Check for static page first
   const page = await getStaticPage(slug)
@@ -260,18 +250,18 @@ export async function generateMetadata({ params }: PageProps) {
   }
 
   // Fall back to post
-  const post = await getPost(slug)
+  const post = await getPost(slug, category)
 
   if (!post) return { title: 'Halaman Tidak Ditemukan' }
 
   const title = post.metaTitle || post.title
   const description = post.metaDescription || post.excerpt || post.content.replace(/<[^>]*>/g, '').substring(0, 160)
-  const canonicalUrl = getCanonicalUrl(`/${slug}`)
+  const canonicalUrl = getCanonicalUrl(`/${category}/${slug}`)
   const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://inidepok.com'
   const rawImageUrl = post.featuredImage || '/og-image.svg'
-  
+
   // Use OG image API to auto-resize to 1200x630 for optimal social sharing
-  const ogImageUrl = rawImageUrl 
+  const ogImageUrl = rawImageUrl
     ? `${BASE_URL}/api/og-image?url=${encodeURIComponent(rawImageUrl)}`
     : `${BASE_URL}/og-image.svg`
 
@@ -305,13 +295,22 @@ export async function generateMetadata({ params }: PageProps) {
   }
 }
 
+// Generate static params for known categories
+export async function generateStaticParams() {
+  try {
+    const allCategories = await db.select({ slug: categories.slug }).from(categories)
+    return allCategories.map((cat) => ({ category: cat.slug }))
+  } catch {
+    return []
+  }
+}
+
 export default async function ArticlePage({ params }: PageProps) {
-  const { slug } = await params
+  const { category, slug } = await params
 
   // Check for static page first
   const page = await getStaticPage(slug)
   if (page) {
-    // Static page - render it normally
     const [popularPosts, allCategories] = await Promise.all([
       getPopularPosts(),
       getCategories(),
@@ -355,7 +354,7 @@ export default async function ArticlePage({ params }: PageProps) {
                     <span className="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded flex items-center justify-center font-bold text-sm">{index + 1}</span>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-medium text-gray-900 line-clamp-2 hover:text-primary-600 transition-colors">
-                        <Link href={`/${post.slug}`}>{post.title}</Link>
+                        <Link href={`/berita/${post.slug}`}>{post.title}</Link>
                       </h4>
                       <p className="text-xs text-gray-500 mt-1">{post.viewCount.toLocaleString('id-ID')} views</p>
                     </div>
@@ -386,13 +385,8 @@ export default async function ArticlePage({ params }: PageProps) {
     )
   }
 
-  // Fall back to post - redirect to new URL format with category
-  const categorySlug = await getPostCategory(slug)
-  if (categorySlug) {
-    redirect(`/${categorySlug}/${slug}`)
-  }
-
-  const post = await getPost(slug)
+  // Fall back to post
+  const post = await getPost(slug, category)
 
   if (!post || post.status !== 'PUBLISHED') notFound()
 
@@ -412,7 +406,7 @@ export default async function ArticlePage({ params }: PageProps) {
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: 'Beranda', url: getCanonicalUrl('/') },
     { name: primaryCategory.name, url: getCanonicalUrl(`/category/${primaryCategory.slug}`) },
-    { name: post.title, url: getCanonicalUrl(`/${post.slug}`) },
+    { name: post.title, url: getCanonicalUrl(`/${primaryCategory.slug}/${post.slug}`) },
   ])
 
   return (
@@ -504,13 +498,13 @@ export default async function ArticlePage({ params }: PageProps) {
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-500 font-medium">Bagikan:</span>
                 <div className="flex gap-2">
-                  <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://inidepok.com/${post.slug}`)}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-colors">
+                  <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://inidepok.com/${primaryCategory.slug}/${post.slug}`)}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-colors">
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
                   </a>
-                  <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`https://inidepok.com/${post.slug}`)}&text=${encodeURIComponent(post.title)}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-sky-500 hover:bg-sky-600 text-white rounded-full flex items-center justify-center transition-colors">
+                  <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`https://inidepok.com/${primaryCategory.slug}/${post.slug}`)}&text=${encodeURIComponent(post.title)}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-sky-500 hover:bg-sky-600 text-white rounded-full flex items-center justify-center transition-colors">
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" /></svg>
                   </a>
-                  <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(post.title + ' - https://inidepok.com/' + post.slug)}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-colors">
+                  <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(post.title + ' - https://inidepok.com/' + primaryCategory.slug + '/' + post.slug)}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-colors">
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
                   </a>
                 </div>
@@ -627,7 +621,7 @@ export default async function ArticlePage({ params }: PageProps) {
                     <span className="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded flex items-center justify-center font-bold text-sm">{index + 1}</span>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-medium text-gray-900 line-clamp-2 hover:text-primary-600 transition-colors">
-                        <Link href={`/${sidebarPost.slug}`}>{sidebarPost.title}</Link>
+                        <Link href={`/${primaryCategory.slug}/${sidebarPost.slug}`}>{sidebarPost.title}</Link>
                       </h4>
                       <p className="text-xs text-gray-500 mt-1">{sidebarPost.viewCount.toLocaleString('id-ID')} views</p>
                     </div>
@@ -640,11 +634,11 @@ export default async function ArticlePage({ params }: PageProps) {
 
             <SidebarWidget title="Kategori">
               <ul className="space-y-2">
-                {allCategories.map((category) => (
-                  <li key={category.slug}>
-                    <Link href={`/category/${category.slug}`} className="flex items-center justify-between py-2 px-3 rounded hover:bg-gray-50 transition-colors">
-                      <span className="text-sm text-gray-700">{category.name}</span>
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">{category._count.posts}</span>
+                {allCategories.map((cat) => (
+                  <li key={cat.slug}>
+                    <Link href={`/category/${cat.slug}`} className="flex items-center justify-between py-2 px-3 rounded hover:bg-gray-50 transition-colors">
+                      <span className="text-sm text-gray-700">{cat.name}</span>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">{cat._count.posts}</span>
                     </Link>
                   </li>
                 ))}

@@ -216,7 +216,7 @@ export default function OpiniPage() {
                         Edit
                       </Link>
                       <Link
-                        href={`/${post.slug}`}
+                        href={`/opini/${post.slug}`}
                         target="_blank"
                         className="text-xs text-gray-500 hover:text-gray-700"
                       >
