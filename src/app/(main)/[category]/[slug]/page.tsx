@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { Sidebar, SidebarWidget } from '@/components/layout'
 import { BannerAd } from '@/components/ads'
 import { PostCard } from '@/components/posts'
-import { ReadingTracker } from '../../../components/posts/ReadingTracker'
+import { ReadingTracker } from '../../../../components/posts/ReadingTracker'
 import { db, posts, pages, users, categories, tags, comments, postCategories, postTags, eq, and, desc, sql, inArray, count, asc } from '@/db'
 import {
   generateArticleSchema,
