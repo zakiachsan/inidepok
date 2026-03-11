@@ -49,7 +49,7 @@ export default function PostCard({
   isTrending = false,
   isBreaking = false,
 }: PostCardProps) {
-  const categorySlug = category?.slug || 'berita'
+  const readingTime = calculateReadingTime(content || excerpt || '')
 
   // Featured variant - CNN style with text left, image right
   if (variant === 'featured') {
@@ -59,7 +59,7 @@ export default function PostCard({
           {/* Content - Left side */}
           <div className="flex-1 p-4 sm:p-5 flex flex-col justify-center order-2 sm:order-1">
             <h2 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors duration-300 leading-snug">
-              <Link href={`/${categorySlug}/${slug}`}>{title}</Link>
+              <Link href={`/${slug}`}>{title}</Link>
             </h2>
             {category && (
               <Link href={`/category/${category.slug}`} className="text-accent-500 text-xs font-semibold hover:text-accent-600 mb-2">
@@ -79,7 +79,7 @@ export default function PostCard({
           </div>
 
           {/* Image - Right side */}
-          <Link href={`/${categorySlug}/${slug}`} className="sm:w-1/2 lg:w-3/5 aspect-[4/3] sm:aspect-auto relative bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden order-1 sm:order-2">
+          <Link href={`/${slug}`} className="sm:w-1/2 lg:w-3/5 aspect-[4/3] sm:aspect-auto relative bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden order-1 sm:order-2">
             {featuredImage ? (
               <Image
                 src={featuredImage}
@@ -108,7 +108,7 @@ export default function PostCard({
         <div className="flex flex-col sm:flex-row">
           {/* Thumbnail */}
           <Link
-            href={`/${categorySlug}/${slug}`}
+            href={`/${slug}`}
             className="sm:w-48 h-36 sm:h-auto flex-shrink-0 relative bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden"
           >
             {featuredImage ? (
@@ -136,7 +136,7 @@ export default function PostCard({
             )}
 
             <h3 className="font-bold text-gray-900 mt-1 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200">
-              <Link href={`/${categorySlug}/${slug}`}>{title}</Link>
+              <Link href={`/${slug}`}>{title}</Link>
             </h3>
 
             {excerpt && (
@@ -169,7 +169,7 @@ export default function PostCard({
 
         {/* Square Thumbnail - Always 1:1 */}
         <Link
-          href={`/${categorySlug}/${slug}`}
+          href={`/${slug}`}
           className="flex-shrink-0 w-16 h-16 relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden"
         >
           {featuredImage ? (
@@ -190,7 +190,7 @@ export default function PostCard({
 
         <div className="flex-1 min-w-0 flex flex-col justify-center">
           <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 leading-snug">
-            <Link href={`/${categorySlug}/${slug}`}>{title}</Link>
+            <Link href={`/${slug}`}>{title}</Link>
           </h4>
           {publishedAt && (
             <p className="text-xs text-gray-400 mt-1">
@@ -207,7 +207,7 @@ export default function PostCard({
     return (
       <article className="post-card group">
         {/* Thumbnail - Square 1:1 */}
-        <Link href={`/${categorySlug}/${slug}`} className="block aspect-square relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden mb-2 shadow-sm">
+        <Link href={`/${slug}`} className="block aspect-square relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden mb-2 shadow-sm">
           {featuredImage ? (
             <Image
               src={featuredImage}
@@ -227,7 +227,7 @@ export default function PostCard({
         {/* Content - Minimal */}
         <div>
           <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 leading-snug">
-            <Link href={`/${categorySlug}/${slug}`}>{title}</Link>
+            <Link href={`/${slug}`}>{title}</Link>
           </h3>
         </div>
       </article>
@@ -240,7 +240,7 @@ export default function PostCard({
       <article className="group flex gap-4 py-4 border-b border-gray-100 last:border-b-0">
         {/* Square Thumbnail - Larger on desktop */}
         <Link
-          href={`/${categorySlug}/${slug}`}
+          href={`/${slug}`}
           className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-sm"
         >
           {featuredImage ? (
@@ -267,7 +267,7 @@ export default function PostCard({
             </Link>
           )}
           <h3 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 leading-snug mb-2">
-            <Link href={`/${categorySlug}/${slug}`}>{title}</Link>
+            <Link href={`/${slug}`}>{title}</Link>
           </h3>
           {publishedAt && (
             <p className="text-xs text-gray-400">
@@ -283,7 +283,7 @@ export default function PostCard({
   return (
     <article className="post-card group">
       {/* Thumbnail - Square 1:1 */}
-      <Link href={`/${categorySlug}/${slug}`} className="block aspect-square relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden mb-2 shadow-sm">
+      <Link href={`/${slug}`} className="block aspect-square relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden mb-2 shadow-sm">
         {featuredImage ? (
           <Image
             src={featuredImage}
@@ -309,7 +309,7 @@ export default function PostCard({
         )}
 
         <h3 className="text-sm sm:text-base font-bold text-gray-900 mt-0.5 sm:mt-1 line-clamp-2 sm:line-clamp-3 group-hover:text-primary-600 transition-colors duration-200">
-          <Link href={`/${categorySlug}/${slug}`}>{title}</Link>
+          <Link href={`/${slug}`}>{title}</Link>
         </h3>
       </div>
     </article>

@@ -177,7 +177,7 @@ export default function CommentsTable({ comments }: CommentsTableProps) {
               <p className="mt-2 text-xs text-gray-500">
                 pada{' '}
                 <Link
-                  href={`/berita/${comment.post.slug}`}
+                  href={`/${comment.post.slug}`}
                   target="_blank"
                   className="text-red-600 hover:underline"
                 >

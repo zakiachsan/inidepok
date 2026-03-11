@@ -11,7 +11,7 @@ export default function ArticleInsertView({ node, selected }: NodeViewProps) {
       className={`article-insert ${selected ? 'ProseMirror-selectednode' : ''}`}
     >
       <a
-        href={`/berita/${slug}`}
+        href={`/${slug}`}
         target="_blank"
         rel="noopener noreferrer"
         className="article-insert-link"

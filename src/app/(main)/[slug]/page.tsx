@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { Sidebar, SidebarWidget } from '@/components/layout'
 import { BannerAd } from '@/components/ads'
 import { PostCard } from '@/components/posts'
@@ -33,26 +33,6 @@ async function getStaticPage(slug: string) {
     }
   } catch (error) {
     console.error('Failed to fetch page:', error)
-    return null
-  }
-}
-
-// Get post category for redirect
-async function getPostCategory(slug: string): Promise<string | null> {
-  try {
-    const [post] = await db.select({ id: posts.id }).from(posts).where(eq(posts.slug, slug)).limit(1)
-    if (!post) return null
-
-    const [cat] = await db
-      .select({ slug: categories.slug })
-      .from(categories)
-      .innerJoin(postCategories, eq(categories.id, postCategories.categoryId))
-      .where(eq(postCategories.postId, post.id))
-      .limit(1)
-
-    return cat?.slug || 'berita'
-  } catch (error) {
-    console.error('Failed to get post category:', error)
     return null
   }
 }
@@ -311,7 +291,6 @@ export default async function ArticlePage({ params }: PageProps) {
   // Check for static page first
   const page = await getStaticPage(slug)
   if (page) {
-    // Static page - render it normally
     const [popularPosts, allCategories] = await Promise.all([
       getPopularPosts(),
       getCategories(),
@@ -386,12 +365,7 @@ export default async function ArticlePage({ params }: PageProps) {
     )
   }
 
-  // Fall back to post - redirect to new URL format with category
-  const categorySlug = await getPostCategory(slug)
-  if (categorySlug) {
-    redirect(`/${categorySlug}/${slug}`)
-  }
-
+  // Fall back to post
   const post = await getPost(slug)
 
   if (!post || post.status !== 'PUBLISHED') notFound()

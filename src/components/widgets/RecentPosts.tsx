@@ -113,7 +113,7 @@ export default function RecentPosts({
                 </Link>
               )}
               <h4 className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors">
-                <Link href={`/${post.categories?.[0]?.slug || 'berita'}/${post.slug}`}>{post.title}</Link>
+                <Link href={`/${post.slug}`}>{post.title}</Link>
               </h4>
               <p className="text-xs text-gray-500 mt-1">
                 {formatDate(post.publishedAt)}

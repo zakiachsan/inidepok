@@ -191,7 +191,7 @@ export default function PostsTable({ posts, currentUser }: PostsTableProps) {
               <td className="px-3 py-2.5">
                 <div className="flex items-center justify-end gap-1">
                   <Link
-                    href={`/berita/${post.slug}`}
+                    href={`/${post.slug}`}
                     target="_blank"
                     className="p-1 text-gray-400 hover:text-gray-600 rounded"
                     title="Lihat"
